@@ -221,7 +221,7 @@ namespace SyncLib {
 
             networkprefab.Initialize();
 
-            Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds(mod.ID);
+            Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}");
 
             if (hashIds is null) {
                 MelonLogger.Error("SyncLib attempted to register a custom prefab, but something unexpected happened.");

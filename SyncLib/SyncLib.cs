@@ -1,5 +1,7 @@
 ﻿using Alta.Networking;
 using Alta.Networking.Internal;
+using Alta.Networking.Scripts.Player;
+using Alta.Networking.Servers;
 using Alta.NetworkingTransport;
 using Alta.Utilities;
 using HarmonyLib;
@@ -7,14 +9,18 @@ using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using UnityEngine;
+using static AltaMenuItemBase.Assets.Create.Township.Features;
 using Assembly = System.Reflection.Assembly;
+using Connection = Alta.Networking.Connection;
 
 [assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.0", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 namespace SyncLib {
     public class SyncLib : MelonMod {
-        internal const MessageType SyncLibJson = (MessageType)500;
+        internal const EntityMessageType SyncLibJson = (EntityMessageType)255;
 
         internal static GameObject registryObject;
 
@@ -58,76 +64,47 @@ namespace SyncLib {
                 return;
             }
 
-            string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
-
             registryObject = new GameObject("SyncLib - NetworkPrefabRegistry");
             registryObject.AddComponent<SL_NetworkPrefabRegistry>();
 
-            if (File.Exists(modPrefabFilePath)) {
-                string jsonData = File.ReadAllText(modPrefabFilePath);
-
-                SL_NetworkPrefabRegistry.jsonData = jsonData;
-            }
+            Player.LocalPlayerSet += LocalPlayerSet;
 
             DontDestroyOnLoad.DontDestroyOnLoad(registryObject);
+        }
+
+        private void LocalPlayerSet(IPlayer player) {
+            player.Prefab.gameObject.AddComponent<PlayerJsonSync>();
+        }
+    }
+
+    [HarmonyPatch(typeof(SceneSerializer), "InitialSyncEntities", new Type[] { typeof(Player) })]
+    internal static class SceneSerializerPatch {
+        private static void Prefix(Player player) {
+            PlayerJsonSync jsonSync = player.GetComponent<PlayerJsonSync>();
+
+            if (jsonSync != null) {
+                while (!jsonSync.recievedData)
+                    continue;
+            }
         }
     }
 
     [HarmonyPatch(typeof(Player), "InitializePlayerOnServer", new Type[] { typeof(Connection), typeof(PlayerMode), typeof(PlatformTarget), typeof(IAltaFile) })]
     internal static class PlayerPatch {
-        private static void Prefix(Connection connection) {
-            if (NetworkSceneManager.IsServer) {
-                connection.Send(null, SyncLib.SyncLibJson, Serialize);
-            }
-        }
+        private static void Postfix(Player __instance) {
+            if (NetworkSceneManager.IsServer && !SL_NetworkPrefabRegistry.hasRegistered) {
+                string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
 
-        public static void Serialize(Connection connection, Alta.Serialization.Stream stream) {
-            string jsonData = SL_NetworkPrefabRegistry.jsonData;
-            string finalizedJsonData = "SYNCLIB-JSONSYNC:";
-            finalizedJsonData += jsonData;
-            stream.SerializeString(ref finalizedJsonData);
-        }
-    }
+                if (File.Exists(modPrefabFilePath)) {
+                    string jsonData = File.ReadAllText(modPrefabFilePath);
 
-    public class JsonConnectionReciever : ConnectionReceiver {
-        public JsonConnectionReciever(Connection connection, ConnectionChannel channel) : base(connection, channel) { }
-
-        public override void ProcessExistingQueues() { }
-
-        public override void ReceivePacket(ITransportSocket socket, ArraySegment<byte> data) {
-            if (SL_NetworkPrefabRegistry.hasRegistered)
-                return;
-
-            while (data.Count > 0) {
-                MessageType messageType;
-                int num = MessageProcessor.ProcessSingleMessageFromData(connection, data, channel, out messageType);
-                int offset = data.Offset + num;
-                int count = data.Count - num;
-                data = new ArraySegment<byte>(data.Array, offset, count);
-
-                if (messageType == SyncLib.SyncLibJson) {
-                    using MemoryStream stream = new MemoryStream(data.Array, data.Offset, data.Count);
-
-                    using (StreamReader reader = new StreamReader(stream)) {
-                        string text = reader.ReadToEnd();
-
-                        if (!text.StartsWith("SYNCLIB-JSONSYNC:"))
-                            continue;
-
-                        text = text.Replace("SYNCLIB-JSONSYNC:", "");
-
-                        SL_NetworkPrefabRegistry.jsonData = text;
-                    }
+                    SL_NetworkPrefabRegistry.jsonData = jsonData;
                 }
-            }
-        }
-    }
 
-    [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
-    internal static class PrefabManagerPatch {
-        private static void Postfix() {
-            if(NetworkSceneManager.IsServer || SL_NetworkPrefabRegistry.recievedSyncData)
                 SL_NetworkPrefabRegistry.RegisterIntoGame();
+            }
+
+            __instance.gameObject.AddComponent<PlayerJsonSync>().SendPlayerJsonData();
         }
     }
 }
