@@ -1,0 +1,463 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="ExistingPrefabIDs.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="ExistingPrefabIDs.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\MelonLoader\net35\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Analytics.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Analytics.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Api.Client">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Api.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Api.DataTransferModels">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Api.DataTransferModels.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.ArrayPools.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.ArrayPools.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Attributes">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Attributes.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Authentication">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Authentication.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Build">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Build.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.CommandLine">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.CommandLine.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Core.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Core.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Coroutines">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Coroutines.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.EventBus.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.EventBus.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Global.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Global.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.IO">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.LifecycleManagement.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.LifecycleManagement.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.LifetimeScopes">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.LifetimeScopes.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.MenuItem">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.MenuItem.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.NetworkTransport.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.NetworkTransport.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Platform">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Platform.Generic">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Platform.Generic.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.PlatformInformation.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.PlatformInformation.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Profiling.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Profiling.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.SearchableTools">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.SearchableTools.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Serialization.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Serialization.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Singletons">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Singletons.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Timing.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Timing.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.Values">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.Values.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.VContainerLayer.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.VContainerLayer.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.XRManagement">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.XRManagement.dll</HintPath>
+    </Reference>
+    <Reference Include="Alta.XRManagement.Windows">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Alta.XRManagement.Windows.dll</HintPath>
+    </Reference>
+    <Reference Include="AltaPlatformSdk">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\AltaPlatformSdk.dll</HintPath>
+    </Reference>
+    <Reference Include="AltaSocketsNETFramework">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\AltaSocketsNETFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="MelonLoader">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\MelonLoader\net35\MelonLoader.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Root.Township">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Root.Township.dll</HintPath>
+    </Reference>
+    <Reference Include="TavernLib">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\Plugins\TavernLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Addressables">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Addressables.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Formats.Fbx.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Formats.Fbx.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.MemoryProfiler">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.MemoryProfiler.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Postprocessing.Runtime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Postprocessing.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProBuilder.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.Csg">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProBuilder.Csg.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.KdTree">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProBuilder.KdTree.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.Poly2Tri">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProBuilder.Poly2Tri.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProBuilder.Stl">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProBuilder.Stl.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ProGrids">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ProGrids.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Recorder">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Recorder.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ResourceManager">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ResourceManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ScriptableBuildPipeline">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.ScriptableBuildPipeline.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Authentication">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Authentication.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Analytics">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Analytics.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Configuration">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Device">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Device.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Environments">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Environments.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Environments.Internal">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Environments.Internal.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Internal">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Internal.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Networking">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Networking.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Registration">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Registration.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Scheduler">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Scheduler.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Telemetry">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Telemetry.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Core.Threading">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Core.Threading.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Services.Vivox">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Services.Vivox.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Subsystem.Registration">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Subsystem.Registration.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Timeline">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Timeline.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.CoreUtils">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.CoreUtils.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.Interaction.Toolkit">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.Interaction.Toolkit.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.Management">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.Management.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.Oculus">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.Oculus.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenVR">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenVR.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR.Features.ConformanceAutomation">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.Features.ConformanceAutomation.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR.Features.MetaQuestSupport">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.Features.MetaQuestSupport.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR.Features.MockRuntime">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.Features.MockRuntime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR.Features.OculusQuestSupport">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.Features.OculusQuestSupport.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.OpenXR.Features.RuntimeDebugger">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.OpenXR.Features.RuntimeDebugger.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.XR.PICO">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.XR.PICO.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AccessibilityModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AccessibilityModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AndroidJNIModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AndroidJNIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ARModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ARModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ClothModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ClothModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ClusterInputModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ClusterInputModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ClusterRendererModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ClusterRendererModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CrashReportingModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.CrashReportingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.DirectorModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.DirectorModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.DSPGraphModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.DSPGraphModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.GameCenterModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.GameCenterModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.GIModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.GIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.GridModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.GridModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.HotReloadModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.HotReloadModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.LocalizationModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.LocalizationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PerformanceReportingModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.PerformanceReportingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ProfilerModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ProfilerModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.RuntimeInitializeOnLoadManagerInitializerModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ScreenCaptureModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.ScreenCaptureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SharedInternalsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SpatialTracking">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SpatialTracking.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SpriteMaskModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SpriteMaskModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SpriteShapeModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SpriteShapeModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.StreamingModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.StreamingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SubstanceModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SubstanceModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.SubsystemsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.SubsystemsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TerrainModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TerrainModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TerrainPhysicsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TerrainPhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TextCoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TilemapModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TLSModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.TLSModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsNativeModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UIElementsNativeModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UmbraModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UmbraModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UNETModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UNETModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityAnalyticsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityAnalyticsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityConnectModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityConnectModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityCurlModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityCurlModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityTestProtocolModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityTestProtocolModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestAudioModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VehiclesModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.VehiclesModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VFXModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.VFXModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VideoModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.VideoModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VirtualTexturingModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.VirtualTexturingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.VRModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.VRModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.WindModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.WindModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.XR.LegacyInputHelpers">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.XR.LegacyInputHelpers.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.XRModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\UnityEngine.XRModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
