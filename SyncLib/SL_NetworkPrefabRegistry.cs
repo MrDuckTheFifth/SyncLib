@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace SyncLib.Prefabs {
@@ -127,13 +128,27 @@ namespace SyncLib.Prefabs {
             return nextAvaliable;
         }
 
+        [DllImport("user32.dll")]
+        static extern IntPtr GetActiveWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern int MessageBox(
+            IntPtr hWnd,
+            string text,
+            string caption,
+            uint type
+        );
+
         /// <summary>
         /// Registers a prefab as a NetworkPrefab in Alta's sytems for later use.
         /// <br></br>
         /// <br></br>
+        /// <b>BEWARE!:</b> If the client has this mod that you are using to register an item, but the server doesn't, this function WILL return null, please take care of that accordingly.
+        /// <br></br>
+        /// <br></br>
         /// The SyncLibPrefabId only matters to SyncLib, please do not change it after publishing your mod.
         /// <br></br>
-        /// Your mod is automatically assigned a Hash upon first registry per server.
+        /// Your prefab is automatically assigned a Hash upon first registry per server.
         /// <br></br>
         /// <br></br>
         /// If you need to attach other classes or NetworkBehaviours to the NetworkPrefab, use the 'AdditionalClasses' parameter.
@@ -157,18 +172,41 @@ namespace SyncLib.Prefabs {
                 return null;
             }
 
-            //REDO THIS 
-            //if (!NetworkSceneManager.IsServer) {
-            //    foreach (MelonMod m in MelonMod.RegisteredMelons) {
-            //        if (!HashIds.ContainsKey($"{m.Info.Name}.{m.Info.Author}")) {
-            //            MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the server had a mod that we didn't. Please make sure you install the mod: '{m.Info.Name}.{m.Info.Author}' before attempting to join the server.");
+            if (!NetworkSceneManager.IsServer) {
+                string modRequired = "Unknown";
+                bool issueFound = false;
 
-            //            //Application.Quit();
+                foreach (var hash in HashIds) {
+                    if (issueFound) {
+                        string version = modRequired.Replace($"{mod.Info.Name}.{mod.Info.Author}.", "");
 
-            //            return null;
-            //        }
-            //    }
-            //}
+                        MelonLogger.Error($"The server requires a mod that the client doesn't have. " +
+                            $"Please make sure you install '{modRequired}' before joining this server.");
+
+                        MessageBox(GetActiveWindow(), $"The server requires a mod that the client doesn't have." +
+                            $"\n\nPlease make sure you install '{modRequired}' version '{version}' before joining this server.", "SyncLib - Mod incompatibility, (A Township Tale)", 0);
+
+                        Application.Quit();
+
+                        return null;
+                    }
+
+                    foreach (var melonMod in MelonMod.RegisteredMelons) {
+                        string modInfo = $"{melonMod.Info.Name}.{melonMod.Info.Author}.{melonMod.Info.Version}";
+
+                        if (modInfo == hash.Key) {
+                            issueFound = false;
+
+                            break;
+                        }
+                        else {
+                            modRequired = modInfo;
+
+                            issueFound = true;
+                        }
+                    }
+                }
+            }
 
             if (takenHashIds is null) {
                 MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the takenHashIds reference was null.");
@@ -265,9 +303,24 @@ namespace SyncLib.Prefabs {
             }
 
             bool alreadyContainedID = false;
+            bool noModFound = true;
 
             foreach (string m in HashIds.Keys) {
-                if (m == $"{mod.Info.Name}.{mod.Info.Author}") {
+                if (m.Contains($"{mod.Info.Name}.{mod.Info.Author}")) {
+                    string version = m.Replace($"{mod.Info.Name}.{mod.Info.Author}.", "");
+
+                    if (version != mod.Info.Version) {
+                        MelonLogger.Error($"The client has an outdated mod that the server requires. " +
+                            $"Please make sure you update/downgrade '{mod.Info.Name}.{mod.Info.Author}' to version '{version}' before joining this server.");
+
+                        MessageBox(GetActiveWindow(), $"The client has an outdated mod that the server requires.\n\n" +
+                            $"Please make sure you update/downgrade '{mod.Info.Name}.{mod.Info.Author}' to version '{version}' before joining this server.", "SyncLib - Mod incompatibility, (A Township Tale)", 0);
+
+                        Application.Quit();
+                    }
+
+                    noModFound = false;
+
                     Dictionary<string, int> value = HashIds[m];
 
                     foreach (var item in value) {
@@ -283,7 +336,7 @@ namespace SyncLib.Prefabs {
             }
 
             if (!alreadyContainedID && NetworkSceneManager.IsServer) {
-                Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}");
+                Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}.{mod.Info.Version}");
 
                 if (hashIds is null) {
                     MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab, but something unexpected happened.");
@@ -303,6 +356,9 @@ namespace SyncLib.Prefabs {
 
                 SetHashId(nextAvaliable);
             }
+
+            if (noModFound)
+                return null;
 
             NetworkPrefab[] prefabArray = new NetworkPrefab[] { networkprefab };
 

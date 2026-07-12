@@ -119,6 +119,9 @@
     <Reference Include="Root.Township">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Root.Township.dll</HintPath>
     </Reference>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\System.Windows.Forms.dll</HintPath>
+    </Reference>
     <Reference Include="TavernLib">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\Plugins\TavernLib.dll</HintPath>
     </Reference>
