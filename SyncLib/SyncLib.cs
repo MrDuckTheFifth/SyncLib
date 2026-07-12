@@ -1,30 +1,23 @@
 ﻿using Alta.Networking;
-using Alta.Networking.Internal;
-using Alta.Networking.Scripts.Player;
 using Alta.Networking.Servers;
-using Alta.Utilities;
 using HarmonyLib;
 using MelonLoader;
 using SyncLib.Prefabs;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using UnityEngine;
-using static AltaMenuItemBase.Assets.Create.Township.Features;
 using Assembly = System.Reflection.Assembly;
-using Connection = Alta.Networking.Connection;
 
 [assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.0", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 namespace SyncLib {
     public class SyncLib : MelonMod {
-        internal const EntityMessageType SyncLibJson = (EntityMessageType)255;
-        internal const EntityMessageType SyncLibJsonReturn = (EntityMessageType)256;
+        /* 
+        Just a tiny note for anyone reading this code and trying to figure out MessageTypes, apparentally only MessageTypes up to 31 will actually work :)
 
-        internal static PlayerJsonSync localJsonSync;
+        I had to learn this the hard way.
+
+        - John Sync
+        */
+        public static MessageType JsonSync = (MessageType)18;
 
         private static int[] _existingHashIDs;
 
@@ -33,8 +26,8 @@ namespace SyncLib {
         public override void OnInitializeMelon() {
             base.OnInitializeMelon();
 
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.ExistingPrefabIDs.txt")) {
-                using (StreamReader reader = new StreamReader(stream)) {
+            using (System.IO.Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.ExistingPrefabIDs.txt")) {
+                using (System.IO.StreamReader reader = new System.IO.StreamReader(stream)) {
                     string text = reader.ReadToEnd();
 
                     string[] list = text
@@ -65,82 +58,59 @@ namespace SyncLib {
 
                 return;
             }
-
-            Player.LocalPlayerSet += LocalPlayerSet;
         }
 
-        private void LocalPlayerSet(IPlayer player) {
-            localJsonSync = player.Prefab.gameObject.AddComponent<PlayerJsonSync>();
+        internal static void JsonSerialize(Connection connection, Alta.Serialization.Stream stream) {
+            string json = SL_NetworkPrefabRegistry.jsonData;
+            stream.SerializeString(ref json);
+            if (stream.IsReading && !NetworkSceneManager.IsServer) {
+                MelonLogger.Msg($"Received custom item json data from server: {json}");
+                SL_NetworkPrefabRegistry.jsonData = json;
+            }
         }
     }
 
-    [HarmonyPatch(typeof(SceneSerializer), "InitialSyncEntities", new Type[] { typeof(Player) })]
-    internal static class SceneSerializerPatch {
-        private static Player lastPendingPlayer;
+    // Writing these three patches and magically fixing all of the bugs caused the happiest day of my life
 
-        private static bool Prefix(Player target) {
-            if (NetworkSceneManager.IsServer) {
-                PlayerJsonSync jsonSync = target.GetComponent<PlayerJsonSync>();
+    [HarmonyPatch(typeof(Socket), "CreateConnection", new Type[] { typeof(string), typeof(int) })]
+    internal static class ISocketPatch {
+        private static void Postfix(ref Connection __result) {
+            MelonLogger.Msg("Connection created to server, waiting for HashId json data...");
 
-                if (jsonSync != null && !jsonSync.receivedData) {
-                    lastPendingPlayer = target;
-
-                    Task.Run(WaitForPlayer);
-
-                    return false;
-                }
-
-                return true;
-            }
-            else
-                return true;
-        }
-
-        private static async Task WaitForPlayer() {
-            Player player = lastPendingPlayer;
-
-            PlayerJsonSync jsonSync = player.GetComponent<PlayerJsonSync>();
-
-            while (!jsonSync.receivedData) {
-                await Task.Delay(1);
-            }
-
-            MelonCoroutines.Start(DoInitialSync(player));
-        }
-
-        private static IEnumerator DoInitialSync(Player player) {
-            yield return null;
-
-            INetworkSceneInternal scene = (INetworkSceneInternal)NetworkSceneManager.Current;
-
-            scene.SceneSerializer.InitialSyncEntities(player);
+            __result.SetHandler(SyncLib.JsonSync, SyncLib.JsonSerialize);
         }
     }
 
-    [HarmonyPatch(typeof(Player), "InitializePlayerOnServer", new Type[] { typeof(Connection), typeof(PlayerMode), typeof(PlatformTarget), typeof(IAltaFile) })]
-    internal static class PlayerPatch {
-        private static void Postfix(Player __instance) {
-            if (NetworkSceneManager.IsServer) {
-                if (!SL_NetworkPrefabRegistry.hasRegistered) {
-                    string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
+    [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
+    internal static class PrefabManagerPatch {
+        private static void Postfix() {
+            SL_NetworkPrefabRegistry.RegisterIntoGame();
+        }
+    }
 
-                    if (File.Exists(modPrefabFilePath)) {
-                        string jsonData = File.ReadAllText(modPrefabFilePath);
+    [HarmonyPatch(typeof(ServerHandler), "ConnectionCreated", new Type[] { typeof(Connection) })]
+    internal static class ServerHandlerPatch {
+        private static void Postfix(Connection connection) {
+            MelonLogger.Msg("Player is connecting, waiting for connection approval.");
+            
+            if(NetworkSceneManager.IsServer && SL_NetworkPrefabRegistry.jsonData is null)
+                SL_NetworkPrefabRegistry.ReadJsonFile();
 
-                        SL_NetworkPrefabRegistry.jsonData = jsonData;
-                    }
+            connection.SetHandler(SyncLib.JsonSync, SyncLib.JsonSerialize);
 
-                    SL_NetworkPrefabRegistry.RegisterIntoGame();
-                }
+            connection.Approved += OnApproved;
+        }
 
-                PlayerJsonSync sync = __instance.GetComponent<PlayerJsonSync>();
+        private static void OnApproved(Connection connection) {
+            MelonLogger.Msg("Player connection was approved, attempting to send HashId json data.");
 
-                if (sync == null) {
-                    sync = __instance.gameObject.AddComponent<PlayerJsonSync>();
-                }
+            bool result = connection.Send(null, SyncLib.JsonSync, SyncLib.JsonSerialize);
 
-                sync.SendPlayerJsonData();
+            if (!result) {
+                MelonLogger.Error("Failed to send json data to client.");
             }
+
+            connection.Approved -= OnApproved;
         }
     }
 }

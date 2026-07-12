@@ -39,7 +39,7 @@ namespace SyncLib.Prefabs {
             return prefabIds;
         }
 
-        private static void ReadJsonFile() {
+        internal static void ReadJsonFile() {
             if (NetworkSceneManager.IsServer && jsonData is null) {
                 string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
 
@@ -111,8 +111,6 @@ namespace SyncLib.Prefabs {
 
                 File.WriteAllText(modPrefabFilePath, jsonArray);
             }
-            else
-                SyncLib.localJsonSync?.syncClientReceivedData.SendToChunks();
 
             hasRegistered = true;
         }
@@ -159,17 +157,18 @@ namespace SyncLib.Prefabs {
                 return null;
             }
 
-            if (!NetworkSceneManager.IsServer) {
-                foreach (MelonMod m in MelonMod.RegisteredMelons) {
-                    if (!HashIds.ContainsKey($"{m.Info.Name}.{m.Info.Author}")) {
-                        MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the server had a mod that we didn't. Please make sure you install the mod: '{m.Info.Name}.{m.Info.Author}' before attempting to join the server.");
+            //REDO THIS 
+            //if (!NetworkSceneManager.IsServer) {
+            //    foreach (MelonMod m in MelonMod.RegisteredMelons) {
+            //        if (!HashIds.ContainsKey($"{m.Info.Name}.{m.Info.Author}")) {
+            //            MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the server had a mod that we didn't. Please make sure you install the mod: '{m.Info.Name}.{m.Info.Author}' before attempting to join the server.");
 
-                        Application.Quit();
+            //            //Application.Quit();
 
-                        return null;
-                    }
-                }
-            }
+            //            return null;
+            //        }
+            //    }
+            //}
 
             if (takenHashIds is null) {
                 MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the takenHashIds reference was null.");
@@ -311,6 +310,8 @@ namespace SyncLib.Prefabs {
             methodInfo.Invoke(null, new object[] { prefabArray });
 
             RegisteredCustomPrefabs.Add(networkprefab);
+
+            MelonLogger.Msg($"Successfully registered {SyncLibPrefabId}!");
 
             return networkprefab;
         }
