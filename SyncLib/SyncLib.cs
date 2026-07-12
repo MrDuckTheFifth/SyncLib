@@ -2,14 +2,15 @@
 using Alta.Networking.Internal;
 using Alta.Networking.Scripts.Player;
 using Alta.Networking.Servers;
-using Alta.NetworkingTransport;
 using Alta.Utilities;
 using HarmonyLib;
 using MelonLoader;
+using SyncLib.Prefabs;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using static AltaMenuItemBase.Assets.Create.Township.Features;
@@ -21,8 +22,9 @@ using Connection = Alta.Networking.Connection;
 namespace SyncLib {
     public class SyncLib : MelonMod {
         internal const EntityMessageType SyncLibJson = (EntityMessageType)255;
+        internal const EntityMessageType SyncLibJsonReturn = (EntityMessageType)256;
 
-        internal static GameObject registryObject;
+        internal static PlayerJsonSync localJsonSync;
 
         private static int[] _existingHashIDs;
 
@@ -64,47 +66,81 @@ namespace SyncLib {
                 return;
             }
 
-            registryObject = new GameObject("SyncLib - NetworkPrefabRegistry");
-            registryObject.AddComponent<SL_NetworkPrefabRegistry>();
-
             Player.LocalPlayerSet += LocalPlayerSet;
-
-            DontDestroyOnLoad.DontDestroyOnLoad(registryObject);
         }
 
         private void LocalPlayerSet(IPlayer player) {
-            player.Prefab.gameObject.AddComponent<PlayerJsonSync>();
+            localJsonSync = player.Prefab.gameObject.AddComponent<PlayerJsonSync>();
         }
     }
 
     [HarmonyPatch(typeof(SceneSerializer), "InitialSyncEntities", new Type[] { typeof(Player) })]
     internal static class SceneSerializerPatch {
-        private static void Prefix(Player player) {
+        private static Player lastPendingPlayer;
+
+        private static bool Prefix(Player target) {
+            if (NetworkSceneManager.IsServer) {
+                PlayerJsonSync jsonSync = target.GetComponent<PlayerJsonSync>();
+
+                if (jsonSync != null && !jsonSync.receivedData) {
+                    lastPendingPlayer = target;
+
+                    Task.Run(WaitForPlayer);
+
+                    return false;
+                }
+
+                return true;
+            }
+            else
+                return true;
+        }
+
+        private static async Task WaitForPlayer() {
+            Player player = lastPendingPlayer;
+
             PlayerJsonSync jsonSync = player.GetComponent<PlayerJsonSync>();
 
-            if (jsonSync != null) {
-                while (!jsonSync.recievedData)
-                    continue;
+            while (!jsonSync.receivedData) {
+                await Task.Delay(1);
             }
+
+            MelonCoroutines.Start(DoInitialSync(player));
+        }
+
+        private static IEnumerator DoInitialSync(Player player) {
+            yield return null;
+
+            INetworkSceneInternal scene = (INetworkSceneInternal)NetworkSceneManager.Current;
+
+            scene.SceneSerializer.InitialSyncEntities(player);
         }
     }
 
     [HarmonyPatch(typeof(Player), "InitializePlayerOnServer", new Type[] { typeof(Connection), typeof(PlayerMode), typeof(PlatformTarget), typeof(IAltaFile) })]
     internal static class PlayerPatch {
         private static void Postfix(Player __instance) {
-            if (NetworkSceneManager.IsServer && !SL_NetworkPrefabRegistry.hasRegistered) {
-                string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
+            if (NetworkSceneManager.IsServer) {
+                if (!SL_NetworkPrefabRegistry.hasRegistered) {
+                    string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
 
-                if (File.Exists(modPrefabFilePath)) {
-                    string jsonData = File.ReadAllText(modPrefabFilePath);
+                    if (File.Exists(modPrefabFilePath)) {
+                        string jsonData = File.ReadAllText(modPrefabFilePath);
 
-                    SL_NetworkPrefabRegistry.jsonData = jsonData;
+                        SL_NetworkPrefabRegistry.jsonData = jsonData;
+                    }
+
+                    SL_NetworkPrefabRegistry.RegisterIntoGame();
                 }
 
-                SL_NetworkPrefabRegistry.RegisterIntoGame();
-            }
+                PlayerJsonSync sync = __instance.GetComponent<PlayerJsonSync>();
 
-            __instance.gameObject.AddComponent<PlayerJsonSync>().SendPlayerJsonData();
+                if (sync == null) {
+                    sync = __instance.gameObject.AddComponent<PlayerJsonSync>();
+                }
+
+                sync.SendPlayerJsonData();
+            }
         }
     }
 }

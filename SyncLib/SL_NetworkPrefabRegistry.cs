@@ -9,17 +9,19 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace SyncLib {
+namespace SyncLib.Prefabs {
     /// <summary>
     /// A class designed to assist in easily registering prefabs as NetworkPrefabs in Alta's systems for later use.
     /// </summary>
-    public class SL_NetworkPrefabRegistry : MonoBehaviour {
+    public static class SL_NetworkPrefabRegistry {
         public static List<NetworkPrefab> RegisteredCustomPrefabs = new List<NetworkPrefab>();
 
         internal static Dictionary<string, Dictionary<string, int>> HashIds { get; set; }
         internal static string jsonData = null;
 
         public static EntityManager entityManager = null;
+
+        private static bool inRegistryProcess;
 
         /// <summary>
         /// Called when prefabs are avaliable to be registered by SyncLib.
@@ -80,6 +82,10 @@ namespace SyncLib {
 
         private static HashSet<int> takenHashIds;
 
+        internal static void ResetForNextUsage() {
+            RegisteredCustomPrefabs.Clear();
+        }
+
         internal static void RegisterIntoGame() {
             if (hasRegistered)
                 return;
@@ -92,7 +98,11 @@ namespace SyncLib {
 
             entityManager = Traverse.Create(NetworkSceneManager.Current).Field("entityManager").GetValue<EntityManager>();
 
+            inRegistryProcess = true;
+
             RegisterPrefabs?.Invoke();
+
+            inRegistryProcess = false;
 
             if (NetworkSceneManager.IsServer) {
                 string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
@@ -101,6 +111,8 @@ namespace SyncLib {
 
                 File.WriteAllText(modPrefabFilePath, jsonArray);
             }
+            else
+                SyncLib.localJsonSync?.syncClientReceivedData.SendToChunks();
 
             hasRegistered = true;
         }
@@ -124,12 +136,21 @@ namespace SyncLib {
         /// The SyncLibPrefabId only matters to SyncLib, please do not change it after publishing your mod.
         /// <br></br>
         /// Your mod is automatically assigned a Hash upon first registry per server.
+        /// <br></br>
+        /// <br></br>
+        /// If you need to attach other classes or NetworkBehaviours to the NetworkPrefab, use the 'AdditionalClasses' parameter.
         /// </summary>
         /// <param name="prefab"></param>
         /// <returns></returns>
-        public static NetworkPrefab? RegisterPrefab(MelonMod mod, GameObject prefab, string SyncLibPrefabId) {
+        public static NetworkPrefab? RegisterPrefab(MelonMod mod, GameObject prefab, string SyncLibPrefabId, params Type[] AdditionalClasses) {
+            if (!inRegistryProcess) {
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab too late.");
+
+                return null;
+            }
+
             if (HashIds is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab. But the HashIds reference was null.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the HashIds reference was null.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -138,8 +159,20 @@ namespace SyncLib {
                 return null;
             }
 
+            if (!NetworkSceneManager.IsServer) {
+                foreach (MelonMod m in MelonMod.RegisteredMelons) {
+                    if (!HashIds.ContainsKey($"{m.Info.Name}.{m.Info.Author}")) {
+                        MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the server had a mod that we didn't. Please make sure you install the mod: '{m.Info.Name}.{m.Info.Author}' before attempting to join the server.");
+
+                        Application.Quit();
+
+                        return null;
+                    }
+                }
+            }
+
             if (takenHashIds is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab. But the takenHashIds reference was null.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the takenHashIds reference was null.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -149,7 +182,7 @@ namespace SyncLib {
             }
 
             if (entityManager is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab. But the entityManager reference was null.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. But the entityManager reference was null.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -159,7 +192,7 @@ namespace SyncLib {
             }
 
             if (mod is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab. However the 'mod' parameter was null.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab. However the 'mod' parameter was null.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -169,7 +202,7 @@ namespace SyncLib {
             }
 
             if (string.IsNullOrWhiteSpace(SyncLibPrefabId) || SyncLibPrefabId.Length < 3) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab with an invalid SyncLibPrefabId. Please make sure your SyncLibPrefabId has at least three characters.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab with an invalid SyncLibPrefabId. Please make sure your SyncLibPrefabId has at least three characters.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -179,7 +212,7 @@ namespace SyncLib {
             }
 
             if (prefab is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab that was null.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab that was null.");
 
                 if (NetworkSceneManager.IsServer) {
                     Application.Quit();
@@ -193,7 +226,7 @@ namespace SyncLib {
             if (networkprefab is null)
                 networkprefab = prefab.AddComponent<NetworkPrefab>();
             else {
-                MelonLogger.Error("You cannot register a prefab that already has a NetworkPrefab.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a prefab that already has a NetworkPrefab.");
                     return null;
             }
 
@@ -201,8 +234,14 @@ namespace SyncLib {
             if (entity is null)
                 entity = prefab.AddComponent<NetworkEntity>();
             else {
-                MelonLogger.Error("You cannot register a prefab that already has a NetworkEntity.");
+                MelonLogger.Error($"{mod.Info.Name} attempted to register a prefab that already has a NetworkEntity.");
                     return null;
+            }
+
+            if (AdditionalClasses != null && AdditionalClasses.Length > 0) {
+                foreach (Type nb in AdditionalClasses) {
+                    prefab.AddComponent(nb);
+                }
             }
 
             FieldInfo fieldInfoNP = typeof(NetworkPrefab).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -221,13 +260,6 @@ namespace SyncLib {
 
             networkprefab.Initialize();
 
-            Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}");
-
-            if (hashIds is null) {
-                MelonLogger.Error("SyncLib attempted to register a custom prefab, but something unexpected happened.");
-                    return null;
-            }
-
             void SetHashId(int HashId) {
                 FieldInfo fieldInfoHash = typeof(NetworkPrefab).GetField("hash", BindingFlags.NonPublic | BindingFlags.Instance);
                 fieldInfoHash.SetValue(networkprefab, HashId);
@@ -235,27 +267,35 @@ namespace SyncLib {
 
             bool alreadyContainedID = false;
 
-            foreach (var item in hashIds) {
-                string syncLibPrefabId = item.Key;
-                int hashId = item.Value;
+            foreach (string m in HashIds.Keys) {
+                if (m == $"{mod.Info.Name}.{mod.Info.Author}") {
+                    Dictionary<string, int> value = HashIds[m];
 
-                if (syncLibPrefabId == SyncLibPrefabId) {
-                    if (hashId > 0) {
-                        SetHashId(hashId);
+                    foreach (var item in value) {
+                        if(item.Key == SyncLibPrefabId) {
+                            SetHashId(item.Value);
 
-                        alreadyContainedID = true;
+                            alreadyContainedID = true;
 
-                        break;
+                            break;
+                        }
                     }
                 }
             }
 
-            if (!alreadyContainedID) {
+            if (!alreadyContainedID && NetworkSceneManager.IsServer) {
+                Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}");
+
+                if (hashIds is null) {
+                    MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab, but something unexpected happened.");
+                    return null;
+                }
+
                 int nextAvaliable = getNextAvaliableHashId();
 
                 if (nextAvaliable <= 0) {
-                    MelonLogger.Error("SyncLib attempted to register a custom prefab, but getNextAvaliableHashId returned an error.");
-                        return null;
+                    MelonLogger.Error($"{mod.Info.Name} attempted to register a custom prefab, but getNextAvaliableHashId returned an error.");
+                    return null;
                 }
 
                 takenHashIds.Add(nextAvaliable);
@@ -269,6 +309,8 @@ namespace SyncLib {
 
             MethodInfo methodInfo = typeof(PrefabManager).GetMethod("AddToPrefabMap", BindingFlags.NonPublic | BindingFlags.Static);
             methodInfo.Invoke(null, new object[] { prefabArray });
+
+            RegisteredCustomPrefabs.Add(networkprefab);
 
             return networkprefab;
         }

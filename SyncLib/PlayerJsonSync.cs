@@ -5,12 +5,13 @@ using MelonLoader;
 using System;
 using System.Reflection;
 
-namespace SyncLib {
+namespace SyncLib.Prefabs {
     // John sync
     public class PlayerJsonSync : NetworkEntityBehaviour {
         public MethodSync syncJson;
+        public MethodSync syncClientReceivedData;
 
-        internal bool recievedData;
+        internal bool receivedData;
 
         public IPlayer player;
 
@@ -39,6 +40,7 @@ namespace SyncLib {
             base.Initialize();
 
             syncJson = new MethodSync(base.Entity, SyncLib.SyncLibJson, Serialize);
+            syncClientReceivedData = new MethodSync(base.Entity, SyncLib.SyncLibJsonReturn, SerializeReceived);
         }
 
         internal void SendPlayerJsonData() {
@@ -54,9 +56,19 @@ namespace SyncLib {
             if (stream.IsReading) {
                 SL_NetworkPrefabRegistry.jsonData = json;
 
+                MelonLogger.Msg("RECIEVED DATA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
                 SL_NetworkPrefabRegistry.RegisterIntoGame();
 
-                recievedData = true;
+                receivedData = true;
+            }
+        }
+
+        private void SerializeReceived(IPlayer player, Stream stream) {
+            bool received = receivedData;
+            stream.SerializeBool(ref received);
+            if (stream.IsReading && NetworkSceneManager.IsServer) {
+                receivedData = received;
             }
         }
     }
