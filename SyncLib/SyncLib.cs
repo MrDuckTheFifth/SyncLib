@@ -4,12 +4,25 @@ using HarmonyLib;
 using MelonLoader;
 using SyncLib.Prefabs;
 using System;
+using System.Runtime.InteropServices;
+using UnityEngine;
 using Assembly = System.Reflection.Assembly;
 
 [assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.0", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 namespace SyncLib {
     public class SyncLib : MelonMod {
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetActiveWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        internal static extern int MessageBox(
+            IntPtr hWnd,
+            string text,
+            string caption,
+            uint type
+        );
+
         /* 
         Just a tiny note for anyone reading this code and trying to figure out MessageTypes, apparentally only MessageTypes up to 31 will actually work :)
 
@@ -41,9 +54,7 @@ namespace SyncLib {
                             _existingHashIDs[i] = value;
                         }
                         else {
-                            LoggerInstance.Error(
-                                $"Failed to parse prefab Id: '{list[i]}'"
-                            );
+                            LoggerInstance.Error($"Failed to parse '{list[i]}' from ExistingPrefabIDs.txt.");
                         }
                     }
                 }
@@ -64,7 +75,16 @@ namespace SyncLib {
             string json = SL_NetworkPrefabRegistry.jsonData;
             stream.SerializeString(ref json);
             if (stream.IsReading && !NetworkSceneManager.IsServer) {
-                MelonLogger.Msg($"Received custom item json data from server: {json}");
+                MelonLogger.Msg($"Received custom item json data from server!");
+
+                if (string.IsNullOrWhiteSpace(json)) {
+                    MelonLogger.Error($"An error occured while getting Json data from the server. Please try joining again.");
+
+                    MessageBox(GetActiveWindow(), $"An error occured while getting Json data from the server. Please try joining again.", "SyncLib - Server Error, (A Township Tale)", 0);
+
+                    Application.Quit();
+                }
+
                 SL_NetworkPrefabRegistry.jsonData = json;
             }
         }
@@ -81,10 +101,12 @@ namespace SyncLib {
         }
     }
 
-    [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
-    internal static class PrefabManagerPatch {
-        private static void Postfix() {
-            SL_NetworkPrefabRegistry.RegisterIntoGame();
+    [HarmonyPatch(typeof(NetworkScene), "FirstInitialize", new Type[] { typeof(bool) })]
+    internal static class NetworkScenePatch {
+        private static void Postfix(bool isServer) {
+            if (isServer) {
+                SL_NetworkPrefabRegistry.RegisterIntoGame();
+            }
         }
     }
 
@@ -92,9 +114,6 @@ namespace SyncLib {
     internal static class ServerHandlerPatch {
         private static void Postfix(Connection connection) {
             MelonLogger.Msg("Player is connecting, waiting for connection approval.");
-            
-            if(NetworkSceneManager.IsServer && SL_NetworkPrefabRegistry.jsonData is null)
-                SL_NetworkPrefabRegistry.ReadJsonFile();
 
             connection.SetHandler(SyncLib.JsonSync, SyncLib.JsonSerialize);
 
@@ -113,4 +132,17 @@ namespace SyncLib {
             connection.Approved -= OnApproved;
         }
     }
+
+    // I keep looking over my shoulder because I feel like someone is watching me write code through my window and secretly laughing at me.
+
+
+
+
+
+
+
+
+
+
+    // Actually I think I'm just losing my mind
 }

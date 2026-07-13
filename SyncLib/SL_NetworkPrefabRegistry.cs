@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -14,6 +15,10 @@ namespace SyncLib.Prefabs {
     /// <summary>
     /// A class designed to assist in easily registering prefabs as NetworkPrefabs in Alta's systems for later use.
     /// </summary>
+    
+    // The reason this class doesn't have many funny comments is because I was dead locked in on this for like 4 days.
+
+    //                                           holy crap Geometry Dash reference ^^
     public static class SL_NetworkPrefabRegistry {
         public static List<NetworkPrefab> RegisteredCustomPrefabs = new List<NetworkPrefab>();
 
@@ -110,6 +115,8 @@ namespace SyncLib.Prefabs {
 
                 string jsonArray = JsonConvert.SerializeObject(HashIds, Formatting.Indented);
 
+                jsonData = jsonArray;
+
                 File.WriteAllText(modPrefabFilePath, jsonArray);
             }
 
@@ -127,17 +134,6 @@ namespace SyncLib.Prefabs {
 
             return nextAvaliable;
         }
-
-        [DllImport("user32.dll")]
-        static extern IntPtr GetActiveWindow();
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        static extern int MessageBox(
-            IntPtr hWnd,
-            string text,
-            string caption,
-            uint type
-        );
 
         /// <summary>
         /// Registers a prefab as a NetworkPrefab in Alta's sytems for later use.
@@ -183,7 +179,7 @@ namespace SyncLib.Prefabs {
                         MelonLogger.Error($"The server requires a mod that the client doesn't have. " +
                             $"Please make sure you install '{modRequired}' before joining this server.");
 
-                        MessageBox(GetActiveWindow(), $"The server requires a mod that the client doesn't have." +
+                        SyncLib.MessageBox(SyncLib.GetActiveWindow(), $"The server requires a mod that the client doesn't have." +
                             $"\n\nPlease make sure you install '{modRequired}' version '{version}' before joining this server.", "SyncLib - Mod incompatibility, (A Township Tale)", 0);
 
                         Application.Quit();
@@ -275,11 +271,35 @@ namespace SyncLib.Prefabs {
                     return null;
             }
 
-            if (AdditionalClasses != null && AdditionalClasses.Length > 0) {
-                foreach (Type nb in AdditionalClasses) {
-                    prefab.AddComponent(nb);
-                }
-            }
+            FieldInfo fieldInfoNBE = typeof(NetworkEntity).GetField("networkEntityBehaviours", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (fieldInfoNBE == null)
+                throw new Exception("Couldn't find NetworkEntity.networkEntityBehaviourss");
+
+            MonoBehaviour[] networkBehaviourEntities = (MonoBehaviour[])fieldInfoNBE.GetValue(entity);
+
+            //bool addedNetworkBehaviour = false;
+            //List<MonoBehaviour> classList = networkBehaviourEntities.ToList();
+
+            //if (AdditionalClasses != null && AdditionalClasses.Length > 0) {
+            //    foreach (Type nb in AdditionalClasses) {
+            //        MonoBehaviour comp = prefab.AddComponent(nb) as MonoBehaviour;
+
+            //        if (nb.IsSubclassOf(typeof(NetworkEntityBehaviour))) {
+            //            if (!classList.Contains(comp)) {
+            //                classList.Add(comp);
+
+            //                addedNetworkBehaviour = true;
+            //            }
+            //        }
+            //    }
+            //}
+
+            //if (addedNetworkBehaviour) {
+            //    fieldInfoNBE.SetValue(entity, classList.ToArray());
+            //}
+            //else
+            //    classList = null;
 
             FieldInfo fieldInfoNP = typeof(NetworkPrefab).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -313,7 +333,7 @@ namespace SyncLib.Prefabs {
                         MelonLogger.Error($"The client has an outdated mod that the server requires. " +
                             $"Please make sure you update/downgrade '{mod.Info.Name}.{mod.Info.Author}' to version '{version}' before joining this server.");
 
-                        MessageBox(GetActiveWindow(), $"The client has an outdated mod that the server requires.\n\n" +
+                        SyncLib.MessageBox(SyncLib.GetActiveWindow(), $"The client has an outdated mod that the server requires.\n\n" +
                             $"Please make sure you update/downgrade '{mod.Info.Name}.{mod.Info.Author}' to version '{version}' before joining this server.", "SyncLib - Mod incompatibility, (A Township Tale)", 0);
 
                         Application.Quit();
@@ -333,6 +353,12 @@ namespace SyncLib.Prefabs {
                         }
                     }
                 }
+            }
+
+            if (noModFound) {
+                MelonLogger.Msg($"{mod.Info.Name} Attempted to register a custom prefab, but the client didn't have the mod installed or updated.");
+
+                return null;
             }
 
             if (!alreadyContainedID && NetworkSceneManager.IsServer) {
@@ -356,9 +382,6 @@ namespace SyncLib.Prefabs {
 
                 SetHashId(nextAvaliable);
             }
-
-            if (noModFound)
-                return null;
 
             NetworkPrefab[] prefabArray = new NetworkPrefab[] { networkprefab };
 
