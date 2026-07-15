@@ -39,7 +39,7 @@ namespace SyncLib {
         public override void OnInitializeMelon() {
             base.OnInitializeMelon();
 
-            using (System.IO.Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.ExistingPrefabIDs.txt")) {
+            using (System.IO.Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.Prefabs.ExistingPrefabIDs.txt")) {
                 using (System.IO.StreamReader reader = new System.IO.StreamReader(stream)) {
                     string text = reader.ReadToEnd();
 
@@ -69,10 +69,29 @@ namespace SyncLib {
 
                 return;
             }
+
+            //Player.LocalPlayerSet += LocalPlayerSet;
         }
 
+        //internal static List<Type> RPCs = new List<Type>();
+
+        //private void LocalPlayerSet(IPlayer p) {
+        //    Player player = p as Player;
+
+        //    GameObject playerObject = player.gameObject;
+
+        //    foreach (Type Type in RPCs) {
+        //        playerObject.AddComponent(Type);
+        //    }
+        //}
+
         internal static void JsonSerialize(Connection connection, Alta.Serialization.Stream stream) {
-            string json = SL_NetworkPrefabRegistry.jsonData;
+            string json = NetworkPrefabRegistry.jsonData;
+
+            if (NetworkSceneManager.IsServer) {
+                MelonLogger.Msg($"Sending Json data to player.");
+            }
+
             stream.SerializeString(ref json);
             if (stream.IsReading && !NetworkSceneManager.IsServer) {
                 MelonLogger.Msg($"Received custom item json data from server!");
@@ -85,12 +104,23 @@ namespace SyncLib {
                     Application.Quit();
                 }
 
-                SL_NetworkPrefabRegistry.jsonData = json;
+                NetworkPrefabRegistry.recievedSyncData = true;
+
+                NetworkPrefabRegistry.jsonData = json;
             }
         }
     }
 
-    // Writing these three patches and magically fixing all of the bugs caused the happiest day of my life
+    // Writing these patches and magically fixing all of the bugs caused the happiest day of my life
+
+    // Remember to remove this since TavernLib is adding it next update.
+    // This is just for development purposes because I have no wifi right now lmao
+    [HarmonyPatch(typeof(ApiAccess), "IsConnectedToInternetInternal")]
+    internal static class ApiAccessPatch {
+        private static void Postfix(ref bool __result) {
+            __result = true;
+        }
+    }
 
     [HarmonyPatch(typeof(Socket), "CreateConnection", new Type[] { typeof(string), typeof(int) })]
     internal static class ISocketPatch {
@@ -101,11 +131,21 @@ namespace SyncLib {
         }
     }
 
+    [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
+    internal static class OrefabManagerPatch {
+        private static void Postfix() {
+            if (!NetworkSceneManager.IsServer) {
+                NetworkPrefabRegistry.RegisterIntoGame();
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(NetworkScene), "FirstInitialize", new Type[] { typeof(bool) })]
     internal static class NetworkScenePatch {
         private static void Postfix(bool isServer) {
             if (isServer) {
-                SL_NetworkPrefabRegistry.RegisterIntoGame();
+                PrefabManager.PrepareSpawnSetups();
+                NetworkPrefabRegistry.RegisterIntoGame();
             }
         }
     }
