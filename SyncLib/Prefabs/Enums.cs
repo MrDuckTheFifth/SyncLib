@@ -5,7 +5,7 @@ using System.Text;
 namespace SyncLib.Prefabs {
     public class Enums {
         public enum LootValue {
-            None,
+            NoneOrCustom,
             Common,
             Uncommon,
             Rare,
@@ -14,7 +14,7 @@ namespace SyncLib.Prefabs {
         }
 
         public enum LootCategory {
-            None,
+            NoneOrCustom,
             Complete_Tool,
             Food,
             Magical_Resource,

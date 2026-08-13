@@ -6,10 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Dependencies\ATT Workshop Utilities.dll" />
+    <None Remove="ExampleRegistry\Resources\example sphere" />
     <None Remove="ExistingPrefabIDs.txt" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Dependencies\ATT Workshop Utilities.dll" />
+    <EmbeddedResource Include="ExampleRegistry\Resources\example sphere" />
     <EmbeddedResource Include="Prefabs\ExistingPrefabIDs.txt" />
   </ItemGroup>
 
@@ -110,6 +114,9 @@
     <Reference Include="AltaSocketsNETFramework">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\AltaSocketsNETFramework.dll</HintPath>
     </Reference>
+    <Reference Include="ATT Workshop Utilities">
+      <HintPath>Dependencies\ATT Workshop Utilities.dll</HintPath>
+    </Reference>
     <Reference Include="MelonLoader">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\MelonLoader\net35\MelonLoader.dll</HintPath>
     </Reference>
@@ -121,9 +128,6 @@
     </Reference>
     <Reference Include="System.Windows.Forms">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\System.Windows.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="TavernLib">
-      <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\Plugins\TavernLib.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>..\..\..\..\..\..\..\Games\Alta\A Township Tale\A Township Tale_Data\Managed\Unity.Addressables.dll</HintPath>

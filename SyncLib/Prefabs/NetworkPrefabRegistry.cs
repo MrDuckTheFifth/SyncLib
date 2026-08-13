@@ -1,9 +1,11 @@
-﻿using Alta.Inventory;
+﻿using Alta;
+using Alta.Crafting;
+using Alta.Inventory;
 using Alta.Loot;
 using Alta.Networking;
 using Alta.Networking.Internal;
-using Alta.PAGaC;
-using Alta.Pages;
+using Alta.Utilities;
+using ATT_Workshop_Utilities;
 using HarmonyLib;
 using MelonLoader;
 using Newtonsoft.Json;
@@ -13,159 +15,157 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
-using static SyncLib.Prefabs.Enums;
+using Item = Alta.Inventory.Item;
+using JointSlot = Alta.Crafting.JointSlot;
+using JointInsert = Alta.Crafting.JointInsert;
+using WorkshopChildEntity = ATT_Workshop_Utilities.ChildNetworkEntity;
+using WorkshopCraftingPart = ATT_Workshop_Utilities.CraftingPart;
+using WorkshopGrabPoint = ATT_Workshop_Utilities.GrabPoint;
+using WorkshopItem = ATT_Workshop_Utilities.Item;
+using WorkshopJointInsert = ATT_Workshop_Utilities.JointInsert;
+using WorkshopJointSlot = ATT_Workshop_Utilities.JointSlot;
+using WorkshopLootCategory = Enums.LootCategory;
+using WorkshopLootValue = Enums.LootValue;
 
-namespace SyncLib.Prefabs {
-    public class ItemSettings {
-        public string Description;
+namespace SyncLib.Items {
+    public class HashRegistryFile {
+        public int FormatVersion = 1;
 
-        public Glyph glyph;
+        public int NextHashId = 1;
 
-        /// <summary>
-        /// When scaled in dock
-        /// </summary>
-        public Vector3 StoreScale = new Vector3(0.5f, 0.5f, 0.5f);
+        public List<ModHashRegistry> Mods = new List<ModHashRegistry>();
+    }
 
-        /// <summary>
-        /// When scaled in dock
-        /// </summary>
-        public DockPositioning scaledPositioning;
+    public class ModHashRegistry {
+        public string ModId { get; set; }
 
-        /// <summary>
-        /// When not scaled in a dock
-        /// </summary>
-        public DockPositioning normalPositioning;
+        public string LastKnownVersion { get; set; }
 
-        /// <summary>
-        /// a null value for PickupDockSettings will act as a default if no specific setting is found
-        /// </summary>
-        public Alta.Inventory.Item.CustomDockPositioning[] customPositions;
+        public bool Installed { get; set; }
 
-        /// <summary>
-        /// a null value for PickupDockSettings will act as a default if no specific setting is found
-        /// </summary>
-        public Alta.Inventory.Item.CustomDockPositioning[] customPositionsWhenCrafted;
+        public Dictionary<string, int> ItemHashes { get; set; } = new Dictionary<string, int>();
 
-        public bool isStackable;
-
-        public bool isStackableWhenCrafted;
-
-        public bool destroyWhenDocked;
-
-        public int size;
-
-        public int dockedStackSize = 30;
-
-        public float weight = 1f;
-
-        public Enums.LootValue LootValue;
-
-        public LootCategory LootCategory;
-
-        public Enums.PickupTag[] PickupTags;
-
-        /// <summary>
-        /// Leave as None to use default sound clip
-        /// </summary>
-        public SoundEffect overridePickUpSoundEffectType = SoundEffect.None;
-
-        /// <summary>
-        /// Leave as None to use default sound clip
-        /// </summary>
-        public SoundEffect overrideLetGoSoundEffectType = SoundEffect.None;
-
-        public bool isUsingShrunkenVisual;
-
-        public PooledObjectDefinition shrunkenVisual;
-
-        public bool isOverridingShrunkenScale;
-
-        public float overrideShrunkenScale = 1f;
-
-        public bool isOverridingDefaultVisualScale;
-
-        public float overrideScaleInsideVisual = 1f;
-
-        public bool isSnappingToHand;
-
-        public bool isAssistGrabBlocked;
+        public ModHashRegistry(string modId, string version) {
+            ModId = modId;
+            LastKnownVersion = version;
+            Installed = true;
+        }
     }
 
     /// <summary>
     /// A class designed to assist in easily registering prefabs as NetworkPrefabs in Alta's systems for later use.
     /// </summary>
-    
-    // The reason this class doesn't have many funny comments is because I was dead locked in on this for like 4 days.
-
-    //                                           holy crap Geometry Dash reference ^^
     public static class NetworkPrefabRegistry {
         public static List<NetworkPrefab> RegisteredCustomPrefabs = new List<NetworkPrefab>();
 
-        internal static Dictionary<string, Dictionary<string, int>> HashIds { get; set; }
-        internal static string jsonData = null;
+        public static Dictionary<Item, WorkshopItem> RegisteredCustomItems = new Dictionary<Item, WorkshopItem>();
 
-        public static EntityManager entityManager = null;
+        public static event Action OnItemsFinishedRegistering;
+
+        internal static HashRegistryFile Registry { get; set; }
+
+        internal static string clientSerializableJsonData { get; set; }
+
+        private static string saveFilePath;
+
+        internal static string jsonData = null;
 
         private static bool inRegistryProcess;
 
         /// <summary>
-        /// Called when prefabs are avaliable to be registered by SyncLib.
+        /// Called when custom prefabs are being registered.
         /// </summary>
-        public static Action RegisterPrefabs;
+        public static event Action RegisterPrefabs;
 
         internal static bool recievedSyncData = false;
 
-        private static Dictionary<string, int> GetOrCreateNewModHashIds(string modId) {
-            if (!HashIds.TryGetValue(modId, out Dictionary<string, int> prefabIds)) {
-                prefabIds = new Dictionary<string, int>();
-                HashIds.Add(modId, prefabIds);
+        private static ModHashRegistry GetOrCreateNewModHashIds(this MelonMod mod) {
+            string id = $"{mod.Info.Name}.{mod.Info.Author}";
+
+            var registry = Registry.Mods.FirstOrDefault(x => x.ModId == id);
+
+            if (registry == null) {
+                registry = new ModHashRegistry(
+                    id,
+                    mod.Info.Version
+                );
+
+                Registry.Mods.Add(registry);
             }
 
-            return prefabIds;
+            registry.LastKnownVersion = mod.Info.Version;
+            registry.Installed = true;
+
+            return registry;
+        }
+
+        internal static void RefreshInstalledMods() {
+            foreach (var mod in Registry.Mods)
+                mod.Installed = false;
+
+            foreach (var melon in MelonMod.RegisteredMelons) {
+                string id = $"{melon.Info.Name}.{melon.Info.Author}";
+
+                var registry =
+                    Registry.Mods.FirstOrDefault(x => x.ModId == id);
+
+                if (registry != null) {
+                    registry.Installed = true;
+                    registry.LastKnownVersion = melon.Info.Version;
+                }
+            }
         }
 
         internal static void ReadJsonFile() {
-            if (NetworkSceneManager.IsServer && jsonData is null) {
-                string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
-
-                if (!File.Exists(modPrefabFilePath)) {
-                    HashIds = new Dictionary<string, Dictionary<string, int>>();
+            if (!NetworkSceneManager.IsServer) {
+                if (string.IsNullOrWhiteSpace(jsonData)) {
+                    MelonLogger.Error("Client has no custom item registry.");
 
                     return;
                 }
 
-                jsonData = File.ReadAllText(modPrefabFilePath);
-            }
-
-            try {
-                Dictionary<string, Dictionary<string, int>>? jsonArray = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(jsonData);
-
-                if (jsonArray is null) {
-                    MelonLogger.Error("Failed to read Json modHashIDs file.");
-
-                    // Quitting just so any save data on the server won't get lost.
-                    if (NetworkSceneManager.IsServer)
-                        Application.Quit();
-
-                    return;
-                }
-
-                HashIds = jsonArray;
-            }
-            catch (Exception ex) {
-                MelonLogger.Error("Failed to read Json modHashIDs file.");
-
-                // Quitting just so any save data on the server won't get lost.
-                if (NetworkSceneManager.IsServer)
-                    Application.Quit();
+                Registry = JsonConvert.DeserializeObject<HashRegistryFile>(jsonData);
 
                 return;
+            }
+            else {
+                IAltaFolder serverFolder = AltaIO.ServersFolder;
+                IAltaFolder serverIdFolder = serverFolder.GetSubfolder("-1");
+                IAltaFolder SaveFolder = serverIdFolder.GetSubfolder("Save");
+                saveFilePath = Path.Combine(SaveFolder.Path, "modHashIds.json");
+
+                string path = null;
+
+                if (saveFilePath != null) {
+                    path = saveFilePath;
+                }
+
+                if (string.IsNullOrWhiteSpace(path)) {
+                    MessageError(null, "Something went wrong while getting custom item data.");
+
+                    return;
+                }
+
+                if (!File.Exists(path)) {
+                    Registry = new HashRegistryFile();
+                    return;
+                }
+
+                string json = File.ReadAllText(path);
+
+                Registry = JsonConvert.DeserializeObject<HashRegistryFile>(json);
+
+                RefreshInstalledMods();
             }
         }
 
         internal static bool hasRegistered = false;
 
         private static HashSet<int> takenHashIds;
+
+        private static GameObject JointSlotReference;
+
+        private static GameObject JointInsertReference;
 
         internal static void RegisterIntoGame() {
             if (hasRegistered)
@@ -174,13 +174,43 @@ namespace SyncLib.Prefabs {
             if (!NetworkSceneManager.IsServer && !recievedSyncData)
                 return;
 
-            takenHashIds = new HashSet<int>(SyncLib.ExistingHashIDs);
-
             MelonLogger.Msg("Registering custom prefabs...");
+
+            takenHashIds = new HashSet<int>(SyncLib.ExistingHashIDs);
 
             ReadJsonFile();
 
-            entityManager = Traverse.Create(NetworkSceneManager.Current).Field("entityManager").GetValue<EntityManager>();
+            foreach (var mod in Registry.Mods) {
+                foreach (var hash in mod.ItemHashes.Values) {
+                    takenHashIds.Add(hash);
+                }
+            }
+
+            HashedGeneralValue<Item>.CheckItems();
+
+            // Yoinking the stick and flint's Joints to steal them for our own custom items.
+
+            if (JointSlotReference is null) {
+                // 10650 is the stick's HashedGeneralValue.
+                NetworkPrefab stickPrefab = HashedGeneralValue<Item>.Get(10650).Prefab;
+
+                GameObject jointSlotObject = stickPrefab.GetComponentInChildren<JointSlot>().gameObject;
+
+                if (jointSlotObject != null) {
+                    JointSlotReference = jointSlotObject;
+                }
+            }
+
+            if (JointInsertReference is null) {
+                // 42570 is the flint's HashedGeneralValue.
+                NetworkPrefab flintPrefab = HashedGeneralValue<Item>.Get(42570).Prefab;
+
+                GameObject jointInsertObject = flintPrefab.GetComponentInChildren<JointInsert>().gameObject;
+
+                if (jointInsertObject != null) {
+                    JointInsertReference = jointInsertObject;
+                }
+            }
 
             inRegistryProcess = true;
 
@@ -189,32 +219,49 @@ namespace SyncLib.Prefabs {
             inRegistryProcess = false;
 
             if (NetworkSceneManager.IsServer) {
-                string modPrefabFilePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "modHashIDs.json"));
+                string modPrefabFilePath = saveFilePath;
 
-                string jsonArray = JsonConvert.SerializeObject(HashIds, Formatting.Indented);
+                string json = JsonConvert.SerializeObject(Registry, Formatting.Indented);
 
-                jsonData = jsonArray;
+                jsonData = json;
 
-                File.WriteAllText(modPrefabFilePath, jsonArray);
+                File.WriteAllText(modPrefabFilePath, json);
+
+                var clientData = new HashRegistryFile {
+                    FormatVersion = Registry.FormatVersion,
+                    Mods = Registry.Mods.Where(x => x.Installed).ToList()
+                };
+
+                string clientJson = JsonConvert.SerializeObject(clientData, Formatting.Indented);
+
+                clientSerializableJsonData = clientJson;
             }
 
             hasRegistered = true;
+
+            OnItemsFinishedRegistering?.Invoke();
         }
 
-        internal static int getNextAvaliableHashId() {
-            if (takenHashIds is null)
-                return -1;
+        internal static int GetNextAvailableHashId() {
+            while (takenHashIds.Contains(Registry.NextHashId))
+                Registry.NextHashId++;
 
-            int nextAvaliable = 1;
-            while (takenHashIds.Contains(nextAvaliable)) {
-                nextAvaliable++;
-            }
+            int id = Registry.NextHashId++;
 
-            return nextAvaliable;
+            takenHashIds.Add(id);
+
+            return id;
         }
 
-        private static void ExecuteAllGetComponentAtts(params Component[] comps) {
+        /// <summary>
+        /// Runs all [GetComponent] related attributes that fields in components may have.
+        /// </summary>
+        /// <param name="comps"></param>
+        public static void ExecuteAllGetComponentAtts(params Component[] comps) {
             foreach (var item in comps) {
+                if (item is null)
+                    continue;
+
                 Type type = item.GetType();
 
                 List<FieldInfo> allFields = new List<FieldInfo>();
@@ -244,113 +291,273 @@ namespace SyncLib.Prefabs {
             MelonLogger.Error($"{from} {message}");
 
             if (doMessageBox) {
-                string extraMessage = NetworkSceneManager.IsServer ? 
+                string extraMessage = NetworkSceneManager.IsServer ?
                     "The server will be closed to prevent data corruption." :
                     "A Township Tale will be closed to prevent any further errors.";
 
-                SyncLib.MessageBox(SyncLib.GetActiveWindow(), $"{from} {message}\n\n{extraMessage}",
-                    "SyncLib - Error Occurred, (A Township Tale)", 0);
+                SyncLib.MessageBox(
+                    SyncLib.GetActiveWindow(),
+                    $"{from} {message}\n\n{extraMessage}",
+                    "SyncLib - Error Occurred, (A Township Tale)",
+                    0
+                );
 
                 Application.Quit();
             }
         }
 
-        private static void SetValue(this Item item, string field, object value) {
-            Traverse.Create(item).Field(field).SetValue(value);
+        private static void SetValue(this Item item, Traverse traverse, string field, object value) {
+            traverse.Field(field).SetValue(value);
         }
-             
-        public static Item CreateNewItem(string itemName, ItemSettings settings) {
+
+        private static T? FindScriptableObjectOfName<T>(string name, bool contains = false) where T : UnityEngine.Object {
+            if (contains) {
+                return Resources.FindObjectsOfTypeAll(typeof(T))
+                    .FirstOrDefault(obj => obj.name.Contains(name.Replace('_', ' '))) as T;
+            }
+            else {
+                return Resources.FindObjectsOfTypeAll(typeof(T))
+                    .FirstOrDefault(obj => obj.name == name.Replace('_', ' ')) as T;
+            }
+        }
+
+        private static Item CreateNewItem(string itemName, WorkshopItem settings) {
             Item item = ScriptableObject.CreateInstance<Item>();
 
             item.name = itemName;
 
-            item.SetValue("Description", settings.Description);
+            Traverse traverse = Traverse.Create(item);
 
             // Set Loot Category
-            if (settings.LootCategory != LootCategory.None) {
+            if (settings.LootCategory != WorkshopLootCategory.NoneOrCustom) {
                 string LootCategory = settings.LootCategory.ToString().Replace('_', ' ');
 
-                Category category = Resources.FindObjectsOfTypeAll<Category>()
-                    .FirstOrDefault(c => c.name == LootCategory);
+                Category? category = FindScriptableObjectOfName<Category>(LootCategory);
 
-                item.SetValue("lootCategory", category);
+                if(category != null) {
+                    item.SetValue(traverse, "lootCategory", category);
+                }
             }
 
             // Set Loot Value
-            if (settings.LootValue != Enums.LootValue.None) {
+            if (settings.LootValue != WorkshopLootValue.NoneOrCustom) {
                 string LootValue = settings.LootValue.ToString();
 
-                LootValue lootValue = Resources.FindObjectsOfTypeAll<LootValue>()
-                    .FirstOrDefault(c => c.name.Contains(LootValue));
+                LootValue? lootValue = FindScriptableObjectOfName<LootValue>(LootValue, true);
 
-                item.SetValue("lootValue", lootValue);
+                if (lootValue != null) {
+                    item.SetValue(traverse, "lootValue", lootValue);
+                }
             }
 
             // Set Pickup Tags
             if (settings.PickupTags != null && settings.PickupTags.Length > 0) {
-                List<Alta.Inventory.PickupTag> pickupTags = new List<Alta.Inventory.PickupTag>();
+                List<PickupTag> pickupTags = new List<PickupTag>();
 
                 foreach (var tagEnum in settings.PickupTags) {
                     string tag = tagEnum.ToString().Replace('_', ' ');
 
-                    Alta.Inventory.PickupTag pickupTag = Resources.FindObjectsOfTypeAll<Alta.Inventory.PickupTag>()
-                        .FirstOrDefault(c => c.name == tag);
+                    PickupTag? pickupTag = FindScriptableObjectOfName<PickupTag>(tag);
 
-                    pickupTags.Add(pickupTag);
+                    if (pickupTag != null) {
+                        pickupTags.Add(pickupTag);
+                    }
                 }
 
                 if (pickupTags != null && pickupTags.Count > 0)
-                    item.SetValue("tags", pickupTags);
+                    item.SetValue(traverse, "tags", pickupTags);
             }
 
-            item.SetValue("glyph", settings.glyph);
-            item.SetValue("storeScale", settings.StoreScale);
-            item.SetValue("scaledPositioning", settings.scaledPositioning);
-            item.SetValue("normalPositioning", settings.normalPositioning);
+            //item.SetValue(traverse, "glyph", settings.glyph);
+            item.SetValue(traverse, "storeScale", settings.StoreScale);
 
-            if(settings.customPositions != null && settings.customPositions.Length > 0)
-                item.SetValue("customPositions", settings.customPositions);
+            // I'm so sorry to who ever beared the burden of reading through this code
 
-            if (settings.customPositionsWhenCrafted != null && settings.customPositionsWhenCrafted.Length > 0)
-                item.SetValue("customPositionsWhenCrafted", settings.customPositionsWhenCrafted);
+            if (settings.scaledPositioning is null) {
+                settings.scaledPositioning = new ATT_Workshop_Utilities.DockPositioning();
+            }
 
-            item.SetValue("isStackable", settings.isStackable);
-            item.SetValue("isStackableWhenCrafted", settings.isStackableWhenCrafted);
-            item.SetValue("size", settings.size);
-            item.SetValue("dockedStackSize", settings.dockedStackSize);
-            item.SetValue("weight", settings.weight);
-            item.SetValue("isUsingShrunkenVisual", settings.isUsingShrunkenVisual);
+            Item.DockPositioning scaledDp = new Item.DockPositioning(
+                settings.scaledPositioning.storePosition,
+                settings.scaledPositioning.storeEuler
+            );
 
-            if (settings.shrunkenVisual != null)
-                item.SetValue("shrunkenVisual", settings.shrunkenVisual);
+            if (settings.normalPositioning is null) {
+                settings.normalPositioning = new ATT_Workshop_Utilities.DockPositioning();
+            }
 
-            item.SetValue("isOverridingDefaultShrunkenScale", settings.isOverridingDefaultVisualScale);
-            item.SetValue("overrideShrunkenScale", settings.overrideShrunkenScale);
-            item.SetValue("isOverridingDefaultVisualScale", settings.isOverridingDefaultVisualScale);
-            item.SetValue("overrideScaleInsideVisual", settings.overrideScaleInsideVisual);
-            item.SetValue("isSnappingTohand", settings.isSnappingToHand);
-            item.SetValue("isAssistGrabBlocked", settings.isAssistGrabBlocked);
+            Item.DockPositioning normalDp = new Item.DockPositioning(
+                settings.normalPositioning.storePosition,
+                settings.normalPositioning.storeEuler
+            );
+
+            item.SetValue(traverse, "scaledPositioning", scaledDp);
+            item.SetValue(traverse, "normalPositioning", normalDp);
+
+            if (settings.customPositions is null) {
+                settings.customPositions = new ATT_Workshop_Utilities.CustomDockPositioning[0];
+            }
+
+            Item.CustomDockPositioning[] cdp = new Item.CustomDockPositioning[settings.customPositions.Length];
+
+            if (settings.customPositions.Length > 0) {
+                for (int i = 0; i < settings.customPositions.Length; i++) {
+                    ATT_Workshop_Utilities.CustomDockPositioning customDP = settings.customPositions[i];
+
+                    cdp[i] = new Item.CustomDockPositioning(null, customDP.storePosition, customDP.storeEuler);
+                }
+            }
+
+            if (settings.customPositionsWhenCrafted is null) {
+                settings.customPositionsWhenCrafted = new ATT_Workshop_Utilities.CustomDockPositioning[0];
+            }
+
+            Item.CustomDockPositioning[] cdpwc = new Item.CustomDockPositioning[settings.customPositionsWhenCrafted.Length];
+
+            if (settings.customPositionsWhenCrafted.Length > 0) {
+                for (int i = 0; i < settings.customPositionsWhenCrafted.Length; i++) {
+                    ATT_Workshop_Utilities.CustomDockPositioning customDP = settings.customPositionsWhenCrafted[i];
+
+                    cdpwc[i] = new Item.CustomDockPositioning(null, customDP.storePosition, customDP.storeEuler);
+                }
+            }
+
+            item.SetValue(traverse, "customPositions", cdp);
+            item.SetValue(traverse, "customPositionsWhenCrafted", cdpwc);
+
+            item.SetValue(traverse, "isStackable", settings.isStackable);
+            item.SetValue(traverse, "isStackableWhenCrafted", settings.isStackableWhenCrafted);
+            item.SetValue(traverse, "size", settings.size);
+            item.SetValue(traverse, "dockedStackSize", settings.dockedStackSize);
+            item.SetValue(traverse, "weight", settings.weight);
+            item.SetValue(traverse, "isUsingShrunkenVisual", settings.isUsingShrunkenVisual);
+
+            //if (settings.shrunkenVisual != null)
+                //item.SetValue(traverse, "shrunkenVisual", settings.shrunkenVisual);
+
+            item.SetValue(traverse, "isOverridingDefaultShrunkenScale", settings.isOverridingDefaultVisualScale);
+            item.SetValue(traverse, "overrideShrunkenScale", settings.overrideShrunkenScale);
+            item.SetValue(traverse, "isOverridingDefaultVisualScale", settings.isOverridingDefaultVisualScale);
+            item.SetValue(traverse, "overrideScaleInsideVisual", settings.overrideScaleInsideVisual);
+            item.SetValue(traverse, "isSnappingToHand", settings.isSnappingToHand);
+            item.SetValue(traverse, "isAssistGrabBlocked", settings.isAssistGrabBlocked);
+
+            RegisteredCustomItems.Add(item, settings);
+
+            return item;
+        }
+
+        private static void ApplyPickupGrabPoints(this Pickup pickup) {
+            Transform transform = pickup.transform;
+
+            WorkshopGrabPoint[] wsGrabPoints = transform.GetComponentsInChildren<WorkshopGrabPoint>();
+
+            GrabPoint[] grabPoints = new GrabPoint[wsGrabPoints.Length];
+
+            for (int i = 0; i < wsGrabPoints.Length; i++) {
+                WorkshopGrabPoint grabPoint = wsGrabPoints[i];
+
+                GrabPoint gp = new GrabPoint() {
+                    rotationMode = (RotationMode)grabPoint.rotationMode,
+                };
+
+                Traverse traverse = Traverse.Create(gp);
+
+                traverse.Field("transform").SetValue(pickup.transform);
+                traverse.Field("position").SetValue(grabPoint.transform.localPosition);
+                traverse.Field("rotationEuler").SetValue(grabPoint.transform.localEulerAngles);
+            }
+
+            Traverse.Create(pickup).Field("grabPoints").SetValue(grabPoints);
+        }
+
+        internal static bool AttachNetworkComponentsToBase(this GameObject prefab, out NetworkPrefab networkprefab, out NetworkEntity entity) {
+            networkprefab = null;
+            entity = null;
+
+            networkprefab = prefab.GetComponent<NetworkPrefab>();
+
+            if (networkprefab is null)
+                networkprefab = prefab.AddComponent<NetworkPrefab>();
+            else {
+                return false;
+            }
+
+            entity = prefab.GetComponent<NetworkEntity>();
+            if (entity is null)
+                entity = prefab.AddComponent<NetworkEntity>();
+            else {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static ModHashRegistry GetHashOwner(int hash, ModHashRegistry owner) {
+            foreach (var mod in Registry.Mods) {
+                if (mod == owner)
+                    continue;
+
+                if (mod.ItemHashes.Values.Contains(hash))
+                    return mod;
+            }
+
+            return null;
+        }
+
+        private static bool HasTightGrab(this Transform transform) {
+            Transform[] objs = transform.GetComponentsInChildren<Transform>();
+
+            // Layer 14 is the tight grab layer.
+            return objs.Any(go => go.gameObject.layer == 14);
+        }
+
+        public static Item? RegisterCustomItem(this NetworkPrefab prefab) {
+            WorkshopItem workshopItem = prefab.GetComponent<WorkshopItem>();
+
+            if (workshopItem is null) {
+                MelonLogger.Error("Please use ATT Workshop to register custom items.");
+
+                return null;
+            }
+
+            Item item = CreateNewItem(prefab.name, workshopItem);
+
+            item.Prefab = prefab;
+
+            NetworkEntity entity = prefab.GetComponent<NetworkEntity>();
+
+            Pickup pickup = prefab.GetComponent<Pickup>();
+
+            if (pickup != null) {
+                pickup.Item = item;
+            }
+
+            Traverse.Create(typeof(HashedGeneralValue<Item>))
+                .Field("items")
+                .GetValue<Dictionary<uint, Item>>()
+                .Add(prefab.Hash, item);
+
+            MelonLogger.Msg($"Successfully registered {prefab.name} as a custom item!");
 
             return item;
         }
 
         /// <summary>
-        /// Registers a prefab as a NetworkPrefab in Alta's sytems for later use.
+        /// Registers this prefab as an item in Alta's sytems for later use.
         /// <br></br>
         /// <br></br>
-        /// <b>BEWARE!:</b> If the client has this mod that you are using to register an item, but the server doesn't, this function WILL return null, please take care of that accordingly.
+        /// <b>BEWARE!:</b> If the client has this mod, but the server doesn't, this function WILL return null, please take care of that accordingly.
         /// <br></br>
         /// <br></br>
-        /// The SyncLibPrefabId only matters to SyncLib, please do not change it after publishing your mod.
+        /// The CustomPrefabId only matters to SyncLib, please do not change it after publishing your mod.
         /// <br></br>
         /// Your prefab is automatically assigned a Hash upon first registry per server.
         /// <br></br>
         /// <br></br>
         /// If you need to attach other classes or NetworkBehaviours to the NetworkPrefab, use the 'AdditionalClasses' parameter.
         /// </summary>
-        /// <param name="prefab"></param>
-        /// <returns></returns>
-        public static NetworkPrefab? RegisterPrefab(MelonMod mod, GameObject prefab, string SyncLibPrefabId, Item item, params Type[] AdditionalClasses) {
+        public static NetworkPrefab? RegisterCustomPrefab(this MelonMod mod, GameObject prefab, string CustomPrefabId, params Type[] AdditionalComponents) {
             if (mod is null) {
                 MessageError(mod, "Attempted to register a custom prefab. However the 'mod' parameter was null.");
 
@@ -363,7 +570,7 @@ namespace SyncLib.Prefabs {
                 return null;
             }
 
-            if (HashIds is null) {
+            if (Registry is null) {
                 MessageError(mod, "Attempted to register a custom prefab. But the HashIds reference was null.");
 
                 return null;
@@ -375,17 +582,13 @@ namespace SyncLib.Prefabs {
                 return null;
             }
 
-            if (entityManager is null) {
-                MessageError(mod, "Attempted to register a custom prefab. But the entityManager reference was null.");
+            if (string.IsNullOrWhiteSpace(CustomPrefabId) || CustomPrefabId.Length < 3) {
+                MessageError(mod, "Attempted to register a custom prefab with an invalid CustomPrefabId. Please make sure your CustomPrefabId has at least three characters.");
 
                 return null;
             }
 
-            if (string.IsNullOrWhiteSpace(SyncLibPrefabId) || SyncLibPrefabId.Length < 3) {
-                MessageError(mod, "Attempted to register a custom prefab with an invalid SyncLibPrefabId. Please make sure your SyncLibPrefabId has at least three characters.");
-
-                return null;
-            }
+            CustomPrefabId = $"{CustomPrefabId} ({mod.Info.Name})";
 
             if (prefab is null) {
                 MessageError(mod, "Attempted to register a custom prefab that was null.");
@@ -393,100 +596,209 @@ namespace SyncLib.Prefabs {
                 return null;
             }
 
-            if (!NetworkSceneManager.IsServer) {
-                string modRequired = "Unknown";
-                bool issueFound = false;
+            bool success = prefab.AttachNetworkComponentsToBase(out NetworkPrefab networkprefab, out NetworkEntity entity);
 
-                foreach (var hash in HashIds) {
-                    if (issueFound) {
-                        string version = modRequired.Replace($"{mod.Info.Name}.{mod.Info.Author}.", "");
-
-                        SyncLib.MessageBox(SyncLib.GetActiveWindow(), $"The server requires a mod that the client doesn't have." +
-                            $"\n\nPlease make sure you install '{modRequired}' version '{version}' before joining this server.", "SyncLib - Mod incompatibility, (A Township Tale)", 0);
-
-                        Application.Quit();
-
-                        return null;
-                    }
-
-                    foreach (var melonMod in MelonMod.RegisteredMelons) {
-                        string modInfo = $"{melonMod.Info.Name}.{melonMod.Info.Author}.{melonMod.Info.Version}";
-
-                        if (modInfo == hash.Key) {
-
-                            issueFound = false;
-
-                            break;
-                        }
-                        else {
-                            modRequired = modInfo;
-
-                            issueFound = true;
-                        }
-                    }
-                }
-            }
-
-            NetworkPrefab networkprefab = prefab.GetComponent<NetworkPrefab>();
-
-            if (networkprefab is null)
-                networkprefab = prefab.AddComponent<NetworkPrefab>();
-            else {
-                MessageError(mod, "Attempted to register a prefab that already has a NetworkPrefab.", false);
+            if (!success) {
+                MessageError(mod, "Attempted to register a prefab that's already registered.", false);
 
                 return null;
             }
-
-            item?.SetValue("prefab", networkprefab);
-
-            NetworkEntity entity = prefab.GetComponent<NetworkEntity>();
-            if (entity is null)
-                entity = prefab.AddComponent<NetworkEntity>();
-            else {
-                MessageError(mod, "Attempted to register a prefab that already has a NetworkEntity.", false);
-
-                return null;
-            }
-
-            ExecuteAllGetComponentAtts(entity, networkprefab);
-
-            FieldInfo fieldInfoNP = typeof(NetworkPrefab).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (fieldInfoNP == null)
-                throw new Exception("Couldn't find NetworkPrefab.entity");
-
-            fieldInfoNP.SetValue(networkprefab, entity);
-
-            FieldInfo fieldInfoNE = typeof(NetworkEntity).GetField("prefab", BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (fieldInfoNE == null)
-                throw new Exception("Couldn't find NetworkEntity.prefab");
-
-            fieldInfoNE.SetValue(entity, networkprefab);
 
             List<Component> allComps = new List<Component>();
-            foreach (Type type in AdditionalClasses) {
+
+            allComps.Add(networkprefab);
+            allComps.Add(entity);
+
+            //if (item != null) {
+            //    WorkshopItem settings = RegisteredCustomItems[item];
+
+            //    if (settings != null && settings._physicalMaterial != null) {
+            //        PhysicalMaterialPart part = prefab.AddComponent<PhysicalMaterialPart>();
+
+            //        Traverse.Create(part).Field("physicalMaterial").SetValue(settings._physicalMaterial);
+
+            //        allComps.Add(part);
+            //    }
+            //}
+
+            foreach (Type type in AdditionalComponents) {
+                if (type is null)
+                    continue;
+
                 Component comp = prefab.AddComponent(type);
 
-                if (type == typeof(Pickup) && item != null) {
-                    Pickup p = comp as Pickup;
-                    
-                    p.Item = item;
+                if (comp is Pickup pickup) {
+                    if (HasTightGrab(networkprefab.transform)) {
+                        Traverse.Create(pickup).Field("isTightGrab").SetValue(true);
+                    }
+
+                    pickup.ApplyPickupGrabPoints();
                 }
 
                 allComps.Add(comp);
             }
 
-            ExecuteAllGetComponentAtts(allComps.ToArray());
+            #region non-abstract wall of doom and despair
 
-            networkprefab.Initialize();
-
-            void SetHashId(int HashId) {
-                FieldInfo fieldInfoHash = typeof(NetworkPrefab).GetField("hash", BindingFlags.NonPublic | BindingFlags.Instance);
-                fieldInfoHash.SetValue(networkprefab, HashId);
+            if (prefab.GetComponent<Rigidbody>() != null) {
+                allComps.Add(prefab.AddComponent<NetworkRigidbody>());
             }
 
-            Dictionary<string, int>? hashIds = GetOrCreateNewModHashIds($"{mod.Info.Name}.{mod.Info.Author}.{mod.Info.Version}");
+            WorkshopChildEntity[] childEntities = entity.GetComponentsInChildren<WorkshopChildEntity>();
+
+            foreach (WorkshopChildEntity childEntity in childEntities) {
+                GameObject originalObject = childEntity.gameObject;
+
+                NetworkEntity actualChildEntity = originalObject.AddComponent<NetworkEntity>();
+
+                if (!childEntity.DoNotMarkAsChild) {
+                    Traverse.Create(actualChildEntity).Field("Parent").SetValue(entity);
+                }
+
+                allComps.Add(actualChildEntity);
+            }
+
+            WorkshopCraftingPart[] craftingParts = entity.GetComponentsInChildren<WorkshopCraftingPart>();
+
+            foreach (WorkshopCraftingPart craftingPart in craftingParts) {
+                GameObject originalObject = craftingPart.gameObject;
+
+                Type type = craftingPart.isAddon ?
+                    typeof(AddonCraftingPart) :
+                    typeof(Alta.Crafting.CraftingPart);
+
+                Component comp = originalObject.AddComponent(type);
+
+                allComps.Add(comp);
+            }
+
+            WorkshopJointSlot[] jointSlots = entity.GetComponentsInChildren<WorkshopJointSlot>();
+
+            // I give up on keeping ts organized, as long as it works
+            foreach (WorkshopJointSlot jointSlot in jointSlots) {
+                GameObject originalObject = jointSlot.gameObject;
+
+                GameObject JointSlotObj = GameObject.Instantiate(JointSlotReference);
+
+                Transform originalTr = jointSlot.transform;
+                Transform newTr = JointSlotObj.transform;
+
+                newTr.parent = originalTr.parent;
+
+                newTr.localPosition = originalTr.localPosition;
+                newTr.localScale = originalTr.localScale;
+                newTr.localRotation = originalTr.localRotation;
+
+                JointSlot slot = JointSlotObj.GetComponent<JointSlot>();
+                NetworkEntity slotEntity = JointSlotObj.GetComponent<NetworkEntity>();
+
+                if (slot is null || slotEntity is null)
+                    continue;
+
+                slotEntity.OnValidate();
+
+                ChildNetworkEntity childEntity = JointSlotObj.GetComponent<ChildNetworkEntity>();
+
+                Traverse traverse = Traverse.Create(slot);
+
+                if (childEntity != null && !childEntity.DoNotMarkAsChild) {
+                    traverse.Field("Parent").SetValue(entity);
+                }
+
+                List<JointSlotType> types = new List<JointSlotType>();
+
+                foreach (Enums.JointSlotType type in jointSlot.JointSlotTypes) {
+                    string name = type.ToString();
+
+                    JointSlotType? jointSlotType = FindScriptableObjectOfName<JointSlotType>(name);
+
+                    if (jointSlotType != null) {
+                        types.Add(jointSlotType);
+                    }
+                }
+
+                traverse.Field("types").SetValue(types);
+
+                if (slot.CraftingPart != null) {
+                    traverse.Field("ConnectedPart").SetValue(slot.CraftingPart);
+                }
+
+                allComps.Add(slotEntity);
+
+                originalObject.SetActive(false);
+            }
+
+            WorkshopJointInsert[] insertSlots = entity.GetComponentsInChildren<WorkshopJointInsert>();
+
+            foreach (WorkshopJointInsert jointInsert in insertSlots) {
+                GameObject originalObject = jointInsert.gameObject;
+
+                GameObject JointInsertObj = GameObject.Instantiate(JointInsertReference);
+
+                Transform originalTr = jointInsert.transform;
+                Transform newTr = JointInsertObj.transform;
+
+                newTr.parent = originalTr.parent;
+
+                newTr.localPosition = originalTr.localPosition;
+                newTr.localScale = originalTr.localScale;
+                newTr.localRotation = originalTr.localRotation;
+
+                JointInsert slot = JointInsertObj.GetComponent<JointInsert>();
+                NetworkEntity slotEntity = JointInsertObj.GetComponent<NetworkEntity>();
+
+                if (slot is null || slotEntity is null)
+                    continue;
+
+                slotEntity.OnValidate();
+
+                ChildNetworkEntity childEntity = JointInsertObj.GetComponent<ChildNetworkEntity>();
+
+                Traverse traverse = Traverse.Create(slot);
+
+                if (childEntity != null && !childEntity.DoNotMarkAsChild) {
+                    traverse.Field("Parent").SetValue(entity);
+                }
+
+
+                string name = jointInsert.InsertType.ToString();
+
+                JointSlotType? jointSlotType = FindScriptableObjectOfName<JointSlotType>(name);
+
+                if (jointSlotType != null) {
+                    traverse.Field("type").SetValue(jointSlotType);
+                }
+
+                allComps.Add(slotEntity);
+
+                originalObject.SetActive(false);
+            }
+
+            #endregion
+
+            ExecuteAllGetComponentAtts(allComps.ToArray());
+
+            ModHashRegistry hashIds = mod.GetOrCreateNewModHashIds();
+
+            bool SetHashId(int HashId) {
+                FieldInfo fieldInfoHash = typeof(NetworkPrefab).GetField("hash", BindingFlags.NonPublic | BindingFlags.Instance);
+                fieldInfoHash.SetValue(networkprefab, HashId);
+
+                ModHashRegistry existingOwner = GetHashOwner(HashId, hashIds);
+
+                if (existingOwner != null) {
+                    MessageError(mod, $"Hash '{HashId}' for '{prefab.name}' is already registered by '{existingOwner.ModId}'", false);
+
+                    return false;
+                }
+
+                takenHashIds.Add(HashId);
+
+                networkprefab.Initialize();
+                entity.OnValidate();
+
+                return true;
+            }
 
             if (hashIds is null) {
                 MessageError(mod, "Attempted to register a custom prefab, but something unexpected happened.");
@@ -496,9 +808,12 @@ namespace SyncLib.Prefabs {
 
             bool alreadyHadId = false;
 
-            foreach (var data in hashIds) {
-                if (data.Key == SyncLibPrefabId) {
-                    SetHashId(data.Value);
+            foreach (var data in hashIds.ItemHashes) {
+                if (data.Key == CustomPrefabId) {
+                    bool done = SetHashId(data.Value);
+
+                    if (!done)
+                        return null;
 
                     alreadyHadId = true;
 
@@ -507,19 +822,20 @@ namespace SyncLib.Prefabs {
             }
 
             if (!alreadyHadId) {
-                int nextAvaliable = getNextAvaliableHashId();
+                int nextAvaliable = GetNextAvailableHashId();
 
                 if (nextAvaliable <= 0) {
-                    MessageError(mod, "Attempted to register a custom prefab, but getNextAvaliableHashId returned an error.");
+                    MessageError(mod, "Attempted to register a custom prefab, but GetNextAvailableHashId returned an error.");
 
                     return null;
                 }
 
-                takenHashIds.Add(nextAvaliable);
+                hashIds.ItemHashes.Add(CustomPrefabId, nextAvaliable);
 
-                hashIds.Add(SyncLibPrefabId, nextAvaliable);
+                bool done = SetHashId(nextAvaliable);
 
-                SetHashId(nextAvaliable);
+                if (!done)
+                    return null;
             }
 
             NetworkPrefab[] prefabArray = new NetworkPrefab[] { networkprefab };
@@ -529,7 +845,7 @@ namespace SyncLib.Prefabs {
 
             RegisteredCustomPrefabs.Add(networkprefab);
 
-            MelonLogger.Msg($"Successfully registered {SyncLibPrefabId}!");
+            MelonLogger.Msg($"Successfully registered {prefab.name} as a NetworkPrefab with HashId of '{networkprefab.Hash}'!");
 
             return networkprefab;
         }

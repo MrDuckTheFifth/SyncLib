@@ -2,16 +2,20 @@
 using Alta.Networking.Servers;
 using HarmonyLib;
 using MelonLoader;
-using SyncLib.Prefabs;
+using SyncLib.Items;
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using Assembly = System.Reflection.Assembly;
 
 [assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.0", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
+
 namespace SyncLib {
     public class SyncLib : MelonMod {
+        internal static SyncLib instance;
+
         [DllImport("user32.dll")]
         internal static extern IntPtr GetActiveWindow();
 
@@ -23,21 +27,30 @@ namespace SyncLib {
             uint type
         );
 
-        /* 
-        Just a tiny note for anyone reading this code and trying to figure out MessageTypes, apparentally only MessageTypes up to 31 will actually work :)
-
-        I had to learn this the hard way.
-
-        - John Sync
-        */
         public static MessageType JsonSync = (MessageType)18;
 
         private static int[] _existingHashIDs;
 
         public static int[] ExistingHashIDs => _existingHashIDs;
 
+        public override void OnEarlyInitializeMelon() {
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.Dependencies.ATT Workshop Utilities.dll")) {
+                if (stream == null)
+                    return;
+
+                byte[] data = new byte[stream.Length];
+                stream.Read(data, 0, data.Length);
+
+                Assembly.Load(data);
+
+                MelonLogger.Msg("Successfully loaded workshop utilities!");
+            }
+        }
+
         public override void OnInitializeMelon() {
             base.OnInitializeMelon();
+
+            instance = this;
 
             using (System.IO.Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("SyncLib.Prefabs.ExistingPrefabIDs.txt")) {
                 using (System.IO.StreamReader reader = new System.IO.StreamReader(stream)) {
@@ -59,6 +72,8 @@ namespace SyncLib {
                     }
                 }
             }
+
+            ExampleItemRegistry.Awake();
         }
 
         public override void OnLateInitializeMelon() {
@@ -86,7 +101,7 @@ namespace SyncLib {
         //}
 
         internal static void JsonSerialize(Connection connection, Alta.Serialization.Stream stream) {
-            string json = NetworkPrefabRegistry.jsonData;
+            string json = NetworkPrefabRegistry.clientSerializableJsonData;
 
             if (NetworkSceneManager.IsServer) {
                 MelonLogger.Msg($"Sending Json data to player.");
@@ -99,6 +114,10 @@ namespace SyncLib {
                 if (string.IsNullOrWhiteSpace(json)) {
                     MelonLogger.Error($"An error occured while getting Json data from the server. Please try joining again.");
 
+                    connection.FlushPacketManagers();
+
+                    connection.Dispose();
+
                     MessageBox(GetActiveWindow(), $"An error occured while getting Json data from the server. Please try joining again.", "SyncLib - Server Error, (A Township Tale)", 0);
 
                     Application.Quit();
@@ -108,17 +127,6 @@ namespace SyncLib {
 
                 NetworkPrefabRegistry.jsonData = json;
             }
-        }
-    }
-
-    // Writing these patches and magically fixing all of the bugs caused the happiest day of my life
-
-    // Remember to remove this since TavernLib is adding it next update.
-    // This is just for development purposes because I have no wifi right now lmao
-    [HarmonyPatch(typeof(ApiAccess), "IsConnectedToInternetInternal")]
-    internal static class ApiAccessPatch {
-        private static void Postfix(ref bool __result) {
-            __result = true;
         }
     }
 
@@ -133,7 +141,14 @@ namespace SyncLib {
 
     [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
     internal static class OrefabManagerPatch {
+        private static bool called;
+
         private static void Postfix() {
+            if (called)
+                return;
+            
+            called = true;
+
             if (!NetworkSceneManager.IsServer) {
                 NetworkPrefabRegistry.RegisterIntoGame();
             }
@@ -172,17 +187,4 @@ namespace SyncLib {
             connection.Approved -= OnApproved;
         }
     }
-
-    // I keep looking over my shoulder because I feel like someone is watching me write code through my window and secretly laughing at me.
-
-
-
-
-
-
-
-
-
-
-    // Actually I think I'm just losing my mind
 }

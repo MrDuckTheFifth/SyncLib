@@ -8,7 +8,6 @@ namespace SyncLib.Networking {
         }
 
         public override void ReceievedAsServer(IPlayer player) {
-            base.ReceievedAsServer(player);
             MelonLogger.Msg($"Received SimpleRPC from {player.UserInfo.Username}!");
         }
     }
