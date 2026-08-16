@@ -3,9 +3,7 @@ using Alta.Crafting;
 using Alta.Inventory;
 using Alta.Loot;
 using Alta.Networking;
-using Alta.Networking.Internal;
 using Alta.Utilities;
-using ATT_Workshop_Utilities;
 using HarmonyLib;
 using MelonLoader;
 using Newtonsoft.Json;
@@ -26,6 +24,7 @@ using WorkshopJointInsert = ATT_Workshop_Utilities.JointInsert;
 using WorkshopJointSlot = ATT_Workshop_Utilities.JointSlot;
 using WorkshopLootCategory = Enums.LootCategory;
 using WorkshopLootValue = Enums.LootValue;
+using WorkshopPhysicalMaterial = Enums.PhysicalMaterial;
 
 namespace SyncLib.Items {
     public class HashRegistryFile {
@@ -463,13 +462,23 @@ namespace SyncLib.Items {
 
                 Traverse traverse = Traverse.Create(gp);
 
-                traverse.Field("transform").SetValue(pickup.transform);
+                traverse.Field("transform").SetValue(grabPoint.transform);
                 traverse.Field("position").SetValue(grabPoint.transform.localPosition);
                 traverse.Field("rotationEuler").SetValue(grabPoint.transform.localEulerAngles);
+
+                grabPoints[i] = gp;
             }
 
             Traverse.Create(pickup).Field("grabPoints").SetValue(grabPoints);
         }
+
+        /*
+        
+        THINGS TO DO:
+
+        - figure out why the joints won't get assigned a parent.
+        
+        */
 
         internal static bool AttachNetworkComponentsToBase(this GameObject prefab, out NetworkPrefab networkprefab, out NetworkEntity entity) {
             networkprefab = null;
@@ -519,6 +528,20 @@ namespace SyncLib.Items {
                 MelonLogger.Error("Please use ATT Workshop to register custom items.");
 
                 return null;
+            }
+
+            if (workshopItem.PhysicalMaterial != WorkshopPhysicalMaterial.NoneOrCustom) {
+                string PhysicalMaterial = workshopItem.PhysicalMaterial.ToString().Replace('_', ' ');
+
+                PhysicalMaterial? physicalMaterial = FindScriptableObjectOfName<PhysicalMaterial>(PhysicalMaterial);
+
+                if (physicalMaterial != null) {
+                    PhysicalMaterialPart part = prefab.gameObject.AddComponent<PhysicalMaterialPart>();
+
+                    Traverse.Create(part).Field("physicalMaterial").SetValue(physicalMaterial);
+
+                    ExecuteAllGetComponentAtts(part);
+                }
             }
 
             Item item = CreateNewItem(prefab.name, workshopItem);
@@ -609,18 +632,6 @@ namespace SyncLib.Items {
             allComps.Add(networkprefab);
             allComps.Add(entity);
 
-            //if (item != null) {
-            //    WorkshopItem settings = RegisteredCustomItems[item];
-
-            //    if (settings != null && settings._physicalMaterial != null) {
-            //        PhysicalMaterialPart part = prefab.AddComponent<PhysicalMaterialPart>();
-
-            //        Traverse.Create(part).Field("physicalMaterial").SetValue(settings._physicalMaterial);
-
-            //        allComps.Add(part);
-            //    }
-            //}
-
             foreach (Type type in AdditionalComponents) {
                 if (type is null)
                     continue;
@@ -697,13 +708,14 @@ namespace SyncLib.Items {
 
                 slotEntity.OnValidate();
 
-                ChildNetworkEntity childEntity = JointSlotObj.GetComponent<ChildNetworkEntity>();
 
-                Traverse traverse = Traverse.Create(slot);
+                Traverse prefabTraverse = Traverse.Create(networkprefab).Field("embeddedEntities");
 
-                if (childEntity != null && !childEntity.DoNotMarkAsChild) {
-                    traverse.Field("Parent").SetValue(entity);
-                }
+                List<NetworkEntity> list = (List<NetworkEntity>)prefabTraverse.GetValue();
+
+                list.Add(slotEntity);
+                prefabTraverse.SetValue(list);
+
 
                 List<JointSlotType> types = new List<JointSlotType>();
 
@@ -716,6 +728,8 @@ namespace SyncLib.Items {
                         types.Add(jointSlotType);
                     }
                 }
+
+                Traverse traverse = Traverse.Create(slot);
 
                 traverse.Field("types").SetValue(types);
 
@@ -742,7 +756,7 @@ namespace SyncLib.Items {
 
                 newTr.localPosition = originalTr.localPosition;
                 newTr.localScale = originalTr.localScale;
-                newTr.localRotation = originalTr.localRotation;
+                newTr.localEulerAngles = originalTr.localEulerAngles;
 
                 JointInsert slot = JointInsertObj.GetComponent<JointInsert>();
                 NetworkEntity slotEntity = JointInsertObj.GetComponent<NetworkEntity>();
@@ -752,21 +766,21 @@ namespace SyncLib.Items {
 
                 slotEntity.OnValidate();
 
-                ChildNetworkEntity childEntity = JointInsertObj.GetComponent<ChildNetworkEntity>();
 
-                Traverse traverse = Traverse.Create(slot);
+                Traverse traverse = Traverse.Create(networkprefab).Field("embeddedEntities");
 
-                if (childEntity != null && !childEntity.DoNotMarkAsChild) {
-                    traverse.Field("Parent").SetValue(entity);
-                }
+                List <NetworkEntity> list =  (List<NetworkEntity>)traverse.GetValue();
+
+                list.Add(slotEntity);
+                traverse.SetValue(list);
 
 
                 string name = jointInsert.InsertType.ToString();
 
-                JointSlotType? jointSlotType = FindScriptableObjectOfName<JointSlotType>(name);
+                JointInsertType? jointSlotType = FindScriptableObjectOfName<JointInsertType>(name);
 
                 if (jointSlotType != null) {
-                    traverse.Field("type").SetValue(jointSlotType);
+                    Traverse.Create(slot).Field("type").SetValue(jointSlotType);
                 }
 
                 allComps.Add(slotEntity);
