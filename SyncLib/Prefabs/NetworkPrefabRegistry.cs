@@ -14,14 +14,8 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using Item = Alta.Inventory.Item;
-using JointSlot = Alta.Crafting.JointSlot;
-using JointInsert = Alta.Crafting.JointInsert;
-using WorkshopChildEntity = ATT_Workshop_Utilities.ChildNetworkEntity;
-using WorkshopCraftingPart = ATT_Workshop_Utilities.CraftingPart;
 using WorkshopGrabPoint = ATT_Workshop_Utilities.GrabPoint;
 using WorkshopItem = ATT_Workshop_Utilities.Item;
-using WorkshopJointInsert = ATT_Workshop_Utilities.JointInsert;
-using WorkshopJointSlot = ATT_Workshop_Utilities.JointSlot;
 using WorkshopLootCategory = Enums.LootCategory;
 using WorkshopLootValue = Enums.LootValue;
 using WorkshopPhysicalMaterial = Enums.PhysicalMaterial;
@@ -162,9 +156,9 @@ namespace SyncLib.Items {
 
         private static HashSet<int> takenHashIds;
 
-        private static GameObject JointSlotReference;
+        internal static GameObject JointSlotReference;
 
-        private static GameObject JointInsertReference;
+        internal static GameObject JointInsertReference;
 
         internal static void RegisterIntoGame() {
             if (hasRegistered)
@@ -309,7 +303,7 @@ namespace SyncLib.Items {
             traverse.Field(field).SetValue(value);
         }
 
-        private static T? FindScriptableObjectOfName<T>(string name, bool contains = false) where T : UnityEngine.Object {
+        internal static T? FindScriptableObjectOfName<T>(string name, bool contains = false) where T : UnityEngine.Object {
             if (contains) {
                 return Resources.FindObjectsOfTypeAll(typeof(T))
                     .FirstOrDefault(obj => obj.name.Contains(name.Replace('_', ' '))) as T;
@@ -446,32 +440,6 @@ namespace SyncLib.Items {
             return item;
         }
 
-        private static void ApplyPickupGrabPoints(this Pickup pickup) {
-            Transform transform = pickup.transform;
-
-            WorkshopGrabPoint[] wsGrabPoints = transform.GetComponentsInChildren<WorkshopGrabPoint>();
-
-            GrabPoint[] grabPoints = new GrabPoint[wsGrabPoints.Length];
-
-            for (int i = 0; i < wsGrabPoints.Length; i++) {
-                WorkshopGrabPoint grabPoint = wsGrabPoints[i];
-
-                GrabPoint gp = new GrabPoint() {
-                    rotationMode = (RotationMode)grabPoint.rotationMode,
-                };
-
-                Traverse traverse = Traverse.Create(gp);
-
-                traverse.Field("transform").SetValue(grabPoint.transform);
-                traverse.Field("position").SetValue(grabPoint.transform.localPosition);
-                traverse.Field("rotationEuler").SetValue(grabPoint.transform.localEulerAngles);
-
-                grabPoints[i] = gp;
-            }
-
-            Traverse.Create(pickup).Field("grabPoints").SetValue(grabPoints);
-        }
-
         /*
         
         THINGS TO DO:
@@ -512,13 +480,6 @@ namespace SyncLib.Items {
             }
 
             return null;
-        }
-
-        private static bool HasTightGrab(this Transform transform) {
-            Transform[] objs = transform.GetComponentsInChildren<Transform>();
-
-            // Layer 14 is the tight grab layer.
-            return objs.Any(go => go.gameObject.layer == 14);
         }
 
         public static Item? RegisterCustomItem(this NetworkPrefab prefab) {
@@ -573,7 +534,7 @@ namespace SyncLib.Items {
         /// <b>BEWARE!:</b> If the client has this mod, but the server doesn't, this function WILL return null, please take care of that accordingly.
         /// <br></br>
         /// <br></br>
-        /// The CustomPrefabId only matters to SyncLib, please do not change it after publishing your mod.
+        /// The CustomPrefabId is this item's unique ID per mod, it only matters to SyncLib, please do not change it after publishing your mod.
         /// <br></br>
         /// Your prefab is automatically assigned a Hash upon first registry per server.
         /// <br></br>
@@ -638,157 +599,14 @@ namespace SyncLib.Items {
 
                 Component comp = prefab.AddComponent(type);
 
-                if (comp is Pickup pickup) {
-                    if (HasTightGrab(networkprefab.transform)) {
-                        Traverse.Create(pickup).Field("isTightGrab").SetValue(true);
-                    }
-
-                    pickup.ApplyPickupGrabPoints();
-                }
-
                 allComps.Add(comp);
             }
-
-            #region non-abstract wall of doom and despair
 
             if (prefab.GetComponent<Rigidbody>() != null) {
                 allComps.Add(prefab.AddComponent<NetworkRigidbody>());
             }
 
-            WorkshopChildEntity[] childEntities = entity.GetComponentsInChildren<WorkshopChildEntity>();
-
-            foreach (WorkshopChildEntity childEntity in childEntities) {
-                GameObject originalObject = childEntity.gameObject;
-
-                NetworkEntity actualChildEntity = originalObject.AddComponent<NetworkEntity>();
-
-                if (!childEntity.DoNotMarkAsChild) {
-                    Traverse.Create(actualChildEntity).Field("Parent").SetValue(entity);
-                }
-
-                allComps.Add(actualChildEntity);
-            }
-
-            WorkshopCraftingPart[] craftingParts = entity.GetComponentsInChildren<WorkshopCraftingPart>();
-
-            foreach (WorkshopCraftingPart craftingPart in craftingParts) {
-                GameObject originalObject = craftingPart.gameObject;
-
-                Type type = craftingPart.isAddon ?
-                    typeof(AddonCraftingPart) :
-                    typeof(Alta.Crafting.CraftingPart);
-
-                Component comp = originalObject.AddComponent(type);
-
-                allComps.Add(comp);
-            }
-
-            WorkshopJointSlot[] jointSlots = entity.GetComponentsInChildren<WorkshopJointSlot>();
-
-            // I give up on keeping ts organized, as long as it works
-            foreach (WorkshopJointSlot jointSlot in jointSlots) {
-                GameObject originalObject = jointSlot.gameObject;
-
-                GameObject JointSlotObj = GameObject.Instantiate(JointSlotReference);
-
-                Transform originalTr = jointSlot.transform;
-                Transform newTr = JointSlotObj.transform;
-
-                newTr.parent = originalTr.parent;
-
-                newTr.localPosition = originalTr.localPosition;
-                newTr.localScale = originalTr.localScale;
-                newTr.localRotation = originalTr.localRotation;
-
-                JointSlot slot = JointSlotObj.GetComponent<JointSlot>();
-                NetworkEntity slotEntity = JointSlotObj.GetComponent<NetworkEntity>();
-
-                if (slot is null || slotEntity is null)
-                    continue;
-
-                slotEntity.OnValidate();
-
-
-                Traverse prefabTraverse = Traverse.Create(networkprefab).Field("embeddedEntities");
-
-                List<NetworkEntity> list = (List<NetworkEntity>)prefabTraverse.GetValue();
-
-                list.Add(slotEntity);
-                prefabTraverse.SetValue(list);
-
-
-                List<JointSlotType> types = new List<JointSlotType>();
-
-                foreach (Enums.JointSlotType type in jointSlot.JointSlotTypes) {
-                    string name = type.ToString();
-
-                    JointSlotType? jointSlotType = FindScriptableObjectOfName<JointSlotType>(name);
-
-                    if (jointSlotType != null) {
-                        types.Add(jointSlotType);
-                    }
-                }
-
-                Traverse traverse = Traverse.Create(slot);
-
-                traverse.Field("types").SetValue(types);
-
-                if (slot.CraftingPart != null) {
-                    traverse.Field("ConnectedPart").SetValue(slot.CraftingPart);
-                }
-
-                allComps.Add(slotEntity);
-
-                originalObject.SetActive(false);
-            }
-
-            WorkshopJointInsert[] insertSlots = entity.GetComponentsInChildren<WorkshopJointInsert>();
-
-            foreach (WorkshopJointInsert jointInsert in insertSlots) {
-                GameObject originalObject = jointInsert.gameObject;
-
-                GameObject JointInsertObj = GameObject.Instantiate(JointInsertReference);
-
-                Transform originalTr = jointInsert.transform;
-                Transform newTr = JointInsertObj.transform;
-
-                newTr.parent = originalTr.parent;
-
-                newTr.localPosition = originalTr.localPosition;
-                newTr.localScale = originalTr.localScale;
-                newTr.localEulerAngles = originalTr.localEulerAngles;
-
-                JointInsert slot = JointInsertObj.GetComponent<JointInsert>();
-                NetworkEntity slotEntity = JointInsertObj.GetComponent<NetworkEntity>();
-
-                if (slot is null || slotEntity is null)
-                    continue;
-
-                slotEntity.OnValidate();
-
-
-                Traverse traverse = Traverse.Create(networkprefab).Field("embeddedEntities");
-
-                List <NetworkEntity> list =  (List<NetworkEntity>)traverse.GetValue();
-
-                list.Add(slotEntity);
-                traverse.SetValue(list);
-
-
-                string name = jointInsert.InsertType.ToString();
-
-                JointInsertType? jointSlotType = FindScriptableObjectOfName<JointInsertType>(name);
-
-                if (jointSlotType != null) {
-                    Traverse.Create(slot).Field("type").SetValue(jointSlotType);
-                }
-
-                allComps.Add(slotEntity);
-
-                originalObject.SetActive(false);
-            }
-
-            #endregion
+            WorkshopApplier.ApplyAll(entity, networkprefab, ref allComps);
 
             ExecuteAllGetComponentAtts(allComps.ToArray());
 

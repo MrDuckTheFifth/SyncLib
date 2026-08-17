@@ -1,0 +1,49 @@
+ManifestFileVersion: 0
+CRC: 1717235734
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 6a12a28e69780df5b651892178df37ed
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: eb913aa46901293c8306fcfdb03956a4
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 23
+  Script: {instanceID: 0}
+- Class: 33
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 54
+  Script: {instanceID: 0}
+- Class: 64
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: 760439276, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 114
+  Script: {fileID: 599763184, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 114
+  Script: {fileID: 1868438159, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 114
+  Script: {fileID: -182929813, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 114
+  Script: {fileID: -1705340785, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 114
+  Script: {fileID: -553149031, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 135
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/Items/Example Item/Example Sphere.prefab
+Dependencies: []

@@ -32,8 +32,7 @@ internal static class ExampleItemRegistry {
         // For some occasions, you will only need to register it as a NetworkPrefab for structures that require network behaviours.
         NetworkPrefab? prefab = SyncLib.SyncLib.instance.RegisterCustomPrefab(
             prefab: obj,
-            CustomPrefabId: "ExampleSphere",
-            AdditionalComponents: typeof(Pickup)
+            CustomPrefabId: "ExampleSphere"
         );
 
         if (prefab is null) {

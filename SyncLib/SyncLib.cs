@@ -73,7 +73,7 @@ namespace SyncLib {
                 }
             }
 
-            ExampleItemRegistry.Awake();
+            //ExampleItemRegistry.Awake();
         }
 
         public override void OnLateInitializeMelon() {
@@ -87,18 +87,6 @@ namespace SyncLib {
 
             //Player.LocalPlayerSet += LocalPlayerSet;
         }
-
-        //internal static List<Type> RPCs = new List<Type>();
-
-        //private void LocalPlayerSet(IPlayer p) {
-        //    Player player = p as Player;
-
-        //    GameObject playerObject = player.gameObject;
-
-        //    foreach (Type Type in RPCs) {
-        //        playerObject.AddComponent(Type);
-        //    }
-        //}
 
         internal static void JsonSerialize(Connection connection, Alta.Serialization.Stream stream) {
             string json = NetworkPrefabRegistry.clientSerializableJsonData;

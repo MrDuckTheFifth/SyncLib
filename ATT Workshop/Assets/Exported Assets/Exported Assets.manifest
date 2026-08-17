@@ -1,0 +1,7 @@
+ManifestFileVersion: 0
+CRC: 533614447
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: example sphere
+      Dependencies: {}

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SyncLib.Prefabs {
+﻿namespace SyncLib.Prefabs {
     public class Enums {
         public enum LootValue {
             NoneOrCustom,
@@ -26,6 +22,15 @@ namespace SyncLib.Prefabs {
             Toy,
             Utility,
             Weapon_End
+        }
+
+        public enum DurabilitySettings {
+            NoneOrCustom,
+            Very_Weak_Durability,
+            Weak_Durability,
+            Standard_Durability,
+            Strong_Durability,
+            Very_Strong_Durability
         }
 
         public enum PickupTag {
