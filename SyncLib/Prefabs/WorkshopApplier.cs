@@ -3,7 +3,6 @@ using Alta.Networking;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Xml.Linq;
 using UnityEngine;
 using static SyncLib.Items.NetworkPrefabRegistry;
 using JointInsert = Alta.Crafting.JointInsert;
@@ -19,6 +18,7 @@ using WorkshopImpactorMap = ATT_Workshop_Utilities.ImpactorMap;
 using WorkshopImpactor = ATT_Workshop_Utilities.Impactor;
 using WorkshopImpactTool = ATT_Workshop_Utilities.ImpactTool;
 using Alta.Impact;
+using MelonLoader;
 
 namespace SyncLib.Items {
     public static class WorkshopApplier {
@@ -184,6 +184,7 @@ namespace SyncLib.Items {
                 traverse.Field("isCumbersome").SetValue(pickup.isCumbersome);
                 traverse.Field("blockLevel").SetValue((BlockLevel)pickup.blockLevel);
                 traverse.Field("jointType").SetValue((PickUpJointType)pickup.jointType);
+                traverse.Field("grabPointsScale").SetValue(pickup.grabPointsScale);
 
                 Transform transform = pickup.transform;
 
@@ -203,12 +204,19 @@ namespace SyncLib.Items {
                     traverse2.Field("transform").SetValue(grabPoint.transform);
                     traverse2.Field("position").SetValue(grabPoint.transform.localPosition);
                     traverse2.Field("rotationEuler").SetValue(grabPoint.transform.localEulerAngles);
+                    traverse2.Field("poleForward").SetValue(grabPoint.PoleForward);
                     traverse2.Field("linear").SetValue(grabPoint.Linear);
+                    traverse2.Field("refuseMultipleHands").SetValue(grabPoint.RefuseMultipleHands);
+                    traverse2.Field("Offset").SetValue(grabPoint.Offset);
+                    traverse2.Field("IsDisabled").SetValue(grabPoint.IsDisabled);
+                    traverse2.Field("nonDockedRestriction").SetValue((PickupFromDockRestriction)grabPoint.nonDockedRestriction);
+                    traverse2.Field("dockedRestriction").SetValue((PickupFromDockRestriction)grabPoint.DockedRestriction);
+                    traverse2.Field("thumbPosition").SetValue((ThumbPosition)grabPoint.ThumbPosition);
 
                     grabPoints[i] = gp;
                 }
 
-                Traverse.Create(pickup).Field("grabPoints").SetValue(grabPoints);
+                traverse.Field("grabPoints").SetValue(grabPoints);
 
                 allComps.Add(comp);
             }

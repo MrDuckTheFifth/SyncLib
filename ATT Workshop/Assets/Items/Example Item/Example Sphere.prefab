@@ -264,8 +264,9 @@ GameObject:
   - component: {fileID: 5475741456899463820}
   - component: {fileID: 6957010370695948448}
   - component: {fileID: 2202224883483929411}
-  - component: {fileID: 8054496535171253353}
   - component: {fileID: 6761949633738487047}
+  - component: {fileID: 2907287637637443154}
+  - component: {fileID: 8054496535171253353}
   m_Layer: 0
   m_Name: Example Sphere
   m_TagString: Untagged
@@ -343,8 +344,40 @@ MonoBehaviour:
   overrideShrunkenScale: 1
   isOverridingDefaultVisualScale: 0
   overrideScaleInsideVisual: 1
-  isSnappingToHand: 0
+  isSnappingToHand: 1
   isAssistGrabBlocked: 0
+--- !u!114 &6761949633738487047
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5475741456899463821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -553149031, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isTightGrab: 1
+  isSwingable: 0
+  isCumbersome: 0
+  grabPointsScale: 1
+  blockLevel: 1
+  jointType: 0
+--- !u!114 &2907287637637443154
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5475741456899463821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -363633127, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  integrity: 1
+  DurabilitySettings: 3
 --- !u!54 &8054496535171253353
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -361,23 +394,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &6761949633738487047
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5475741456899463821}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: -553149031, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  isTightGrab: 1
-  isSwingable: 0
-  isCumbersome: 0
-  blockLevel: 1
-  jointType: 0
 --- !u!1 &6385736479926309198
 GameObject:
   m_ObjectHideFlags: 0
@@ -508,10 +524,10 @@ MonoBehaviour:
   PoleForward: {x: 0, y: 0, z: 0}
   RefuseMultipleHands: 0
   Offset: 0.1
+  IsDisabled: 0
   nonDockedRestriction: 0
   DockedRestriction: 0
   ThumbPosition: 1
-  GizmosDrawScale: 1
 --- !u!1 &7496998549239831657
 GameObject:
   m_ObjectHideFlags: 0
