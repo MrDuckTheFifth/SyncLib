@@ -13,7 +13,7 @@ This mod enables modders to easily register their own custom items/Network Prefa
 
 First, you'll want to install the ATT Workshop Unity project, which is located here:
 
-<img width="930" height="377" alt="image" src="https://github.com/user-attachments/assets/4b8e0baf-7da9-455c-b5af-b0d6d2d8a83a" />
+<img width="427" height="225" alt="image" src="https://github.com/user-attachments/assets/b6e6b153-9b46-45fc-8496-fdbf61866783" />
 
 > [!NOTE]
 > This Unity project is required for creating and registering custom items with SyncLib.
