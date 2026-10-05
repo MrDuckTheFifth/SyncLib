@@ -1,8 +1,5 @@
 # SyncLib
 
-> [!WARNING]
-> At the moment, the "Impactor", "ImpactTool", and "ImpactorMap" components do **NOT** work. However, the current release still contains them. If you want to find the issue and create a pull request, it would be very helpful.
-
 This mod enables modders to easily register their own custom items/Network Prefabs in both the server, and client with just a few lines of code. SyncLib also automatically takes care of assigning a Hash to each custom prefab on it's own by having the server keep track of which custom NetworkPrefabs have which Hashes.
 
 > [!NOTE]
