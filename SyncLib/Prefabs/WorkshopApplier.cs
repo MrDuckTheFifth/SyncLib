@@ -18,17 +18,17 @@ using WorkshopImpactorMap = ATT_Workshop_Utilities.ImpactorMap;
 using WorkshopImpactor = ATT_Workshop_Utilities.Impactor;
 using WorkshopImpactTool = ATT_Workshop_Utilities.ImpactTool;
 using Alta.Impact;
-using MelonLoader;
 
 namespace SyncLib.Items {
+    // WARNING: All code readability has gone out the window. Good luck.
     public static class WorkshopApplier {
         public static void ApplyAll(NetworkEntity entity, NetworkPrefab networkprefab, ref List<Component> allComps) {
+            ApplyImpactors(entity, ref allComps);
             ApplyChildEntity(entity, ref allComps);
             ApplyCraftingPart(entity, ref allComps);
             ApplyJoints(entity, networkprefab, ref allComps);
             ApplyPickup(entity, ref allComps);
             ApplyDurabilityModule(entity, ref allComps);
-            ApplyImpactors(entity, ref allComps);
         }
 
         public static void ApplyChildEntity(NetworkEntity entity, ref List<Component> allComps) {
@@ -207,8 +207,8 @@ namespace SyncLib.Items {
                     traverse2.Field("poleForward").SetValue(grabPoint.PoleForward);
                     traverse2.Field("linear").SetValue(grabPoint.Linear);
                     traverse2.Field("refuseMultipleHands").SetValue(grabPoint.RefuseMultipleHands);
-                    traverse2.Field("Offset").SetValue(grabPoint.Offset);
-                    traverse2.Field("IsDisabled").SetValue(grabPoint.IsDisabled);
+                    traverse2.Field("offset").SetValue(grabPoint.Offset);
+                    traverse2.Field("isDisabled").SetValue(grabPoint.IsDisabled);
                     traverse2.Field("nonDockedRestriction").SetValue((PickupFromDockRestriction)grabPoint.nonDockedRestriction);
                     traverse2.Field("dockedRestriction").SetValue((PickupFromDockRestriction)grabPoint.DockedRestriction);
                     traverse2.Field("thumbPosition").SetValue((ThumbPosition)grabPoint.ThumbPosition);
@@ -285,10 +285,26 @@ namespace SyncLib.Items {
 
                     Impactor comp2 = originalObject2.AddComponent<Impactor>();
 
+                    Traverse traverse = Traverse.Create(comp2);
+
+                    if (impactor.ImpactorValues != Enums.ImpactorValues.NoneOrCustom) {
+                        ImpactorValues? impactorValues = FindScriptableObjectOfName<ImpactorValues>(impactor.ImpactorValues.ToString(), true);
+
+                        if(impactorValues != null)
+                            traverse.Field("impactorValues").SetValue(impactorValues);
+                    }
+
+                    if (impactor.ImpactorSettings != Enums.ImpactorSettings.NoneOrCustom) {
+                        ImpactorSettings? impactorSettings = FindScriptableObjectOfName<ImpactorSettings>(impactor.ImpactorSettings.ToString(), true);
+
+                        if (impactorSettings != null)
+                            traverse.Field("impactorSettings").SetValue(impactorSettings);
+                    }
+
                     allComps.Add(comp2);
                 }
 
-                comp.OnValidate();
+                comp.ForceValidate();
             }
         }
     }
