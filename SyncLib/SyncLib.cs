@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using Assembly = System.Reflection.Assembly;
 
-[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.0", "MrDuckTheFifth")]
+[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.2", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 
 namespace SyncLib {
@@ -173,6 +173,30 @@ namespace SyncLib {
             }
 
             connection.Approved -= OnApproved;
+        }
+    }
+
+    // Unity is such a bastard
+    // Like why on earth does "GetComponentInParent" not work SPECIFICALLY ON UNINSTANTIATED PREFABS!?
+
+    // I spent FOUR HOURS trying to figure out why SOME components cannot have their fields set. Just to realize it's all because of Unity's stupid ass again.
+    [HarmonyPatch(typeof(GetComponentInParentAttribute), nameof(GetComponentInParentAttribute.GetComponent))]
+    public static class FixGetComponentInParentPrefabBugPatch {
+        private static bool Prefix(Transform transform, Type type, ref Component __result) {
+            Transform current = transform;
+            while (current != null) {
+                Component targetComponent = current.GetComponent(type);
+                if (targetComponent != null) {
+                    __result = targetComponent;
+
+                    return false;
+                }
+
+                current = current.parent;
+            }
+
+            __result = null;
+            return false;
         }
     }
 }

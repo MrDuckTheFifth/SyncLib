@@ -170,6 +170,7 @@ GameObject:
   - component: {fileID: 5475741456428006817}
   - component: {fileID: 5475741456428006818}
   - component: {fileID: 6829371998931851405}
+  - component: {fileID: 5243411839641320948}
   m_Layer: 0
   m_Name: Model
   m_TagString: Untagged
@@ -253,6 +254,20 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 0.49999997
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5243411839641320948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5475741456428006829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1440756905, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ImpactorValues: 57
+  ImpactorSettings: 18
 --- !u!1 &5475741456899463821
 GameObject:
   m_ObjectHideFlags: 0
@@ -267,6 +282,8 @@ GameObject:
   - component: {fileID: 6761949633738487047}
   - component: {fileID: 2907287637637443154}
   - component: {fileID: 8054496535171253353}
+  - component: {fileID: 2924454527354692771}
+  - component: {fileID: 1389366461657986098}
   m_Layer: 0
   m_Name: Example Sphere
   m_TagString: Untagged
@@ -394,6 +411,44 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &2924454527354692771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5475741456899463821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1033971277, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 1
+  singleHandedMultiplier: 1
+  dualHandedMultiplier: 2
+  timeToSelfHit: 1.5
+  ProvidesExperience: 1
+  isMedHandle: 0
+  isIgnoringVelocityCheck: 0
+  needsToBeProcessedInstantly: 0
+  lengthAxis: {x: 0, y: 1, z: 0}
+  BlockableLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  RequiredBlockLevel: 2
+  ResetConditions: 2
+--- !u!114 &1389366461657986098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5475741456899463821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 311960652, guid: 85349f51f3e6f3f45b6d9a81dc9c4212, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6385736479926309198
 GameObject:
   m_ObjectHideFlags: 0

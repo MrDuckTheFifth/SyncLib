@@ -12,9 +12,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Item = Alta.Inventory.Item;
-using WorkshopGrabPoint = ATT_Workshop_Utilities.GrabPoint;
 using WorkshopItem = ATT_Workshop_Utilities.Item;
 using WorkshopLootCategory = Enums.LootCategory;
 using WorkshopLootValue = Enums.LootValue;
@@ -251,19 +251,24 @@ namespace SyncLib.Items {
         /// </summary>
         /// <param name="comps"></param>
         public static void ExecuteAllGetComponentAtts(params Component[] comps) {
+            if (comps == null) return;
+
             foreach (var item in comps) {
-                if (item is null)
+                if (item == null)
                     continue;
 
                 Type type = item.GetType();
-
                 List<FieldInfo> allFields = new List<FieldInfo>();
 
-                while (type != null) {
-                    FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                while (type != null && type != typeof(MonoBehaviour) && type != typeof(Component)) {
+                    FieldInfo[] fields = type.GetFields(
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic |
+                        BindingFlags.Public |
+                        BindingFlags.DeclaredOnly
+                    );
 
                     allFields.AddRange(fields);
-
                     type = type.BaseType;
                 }
 
@@ -303,14 +308,19 @@ namespace SyncLib.Items {
             traverse.Field(field).SetValue(value);
         }
 
-        internal static T? FindScriptableObjectOfName<T>(string name, bool contains = false) where T : UnityEngine.Object {
+        public static T? FindScriptableObjectOfName<T>(string name, bool contains = false) where T : UnityEngine.Object {
+            // Insert a space between any captial letters.
+            name = Regex.Replace(name, @"(?<=[a-z0-9])(?<!_)([A-Z])", " $1");
+
+            name = name.Replace("__", "-");
+
             if (contains) {
                 return Resources.FindObjectsOfTypeAll(typeof(T))
-                    .FirstOrDefault(obj => obj.name.Contains(name.Replace('_', ' '))) as T;
+                    .FirstOrDefault(obj => obj.name.Contains(name)) as T;
             }
             else {
                 return Resources.FindObjectsOfTypeAll(typeof(T))
-                    .FirstOrDefault(obj => obj.name == name.Replace('_', ' ')) as T;
+                    .FirstOrDefault(obj => obj.name == name) as T;
             }
         }
 
@@ -323,9 +333,7 @@ namespace SyncLib.Items {
 
             // Set Loot Category
             if (settings.LootCategory != WorkshopLootCategory.NoneOrCustom) {
-                string LootCategory = settings.LootCategory.ToString().Replace('_', ' ');
-
-                Category? category = FindScriptableObjectOfName<Category>(LootCategory);
+                Category? category = FindScriptableObjectOfName<Category>(settings.LootCategory.ToString());
 
                 if(category != null) {
                     item.SetValue(traverse, "lootCategory", category);
@@ -334,9 +342,7 @@ namespace SyncLib.Items {
 
             // Set Loot Value
             if (settings.LootValue != WorkshopLootValue.NoneOrCustom) {
-                string LootValue = settings.LootValue.ToString();
-
-                LootValue? lootValue = FindScriptableObjectOfName<LootValue>(LootValue, true);
+                LootValue? lootValue = FindScriptableObjectOfName<LootValue>(settings.LootValue.ToString(), true);
 
                 if (lootValue != null) {
                     item.SetValue(traverse, "lootValue", lootValue);
@@ -348,9 +354,7 @@ namespace SyncLib.Items {
                 List<PickupTag> pickupTags = new List<PickupTag>();
 
                 foreach (var tagEnum in settings.PickupTags) {
-                    string tag = tagEnum.ToString().Replace('_', ' ');
-
-                    PickupTag? pickupTag = FindScriptableObjectOfName<PickupTag>(tag);
+                    PickupTag? pickupTag = FindScriptableObjectOfName<PickupTag>(tagEnum.ToString());
 
                     if (pickupTag != null) {
                         pickupTags.Add(pickupTag);
@@ -440,15 +444,7 @@ namespace SyncLib.Items {
             return item;
         }
 
-        /*
-        
-        THINGS TO DO:
-
-        - figure out why the joints won't get assigned a parent.
-        
-        */
-
-        internal static bool AttachNetworkComponentsToBase(this GameObject prefab, out NetworkPrefab networkprefab, out NetworkEntity entity) {
+        internal static void AttachNetworkComponentsToBase(this GameObject prefab, out NetworkPrefab networkprefab, out NetworkEntity entity) {
             networkprefab = null;
             entity = null;
 
@@ -456,18 +452,11 @@ namespace SyncLib.Items {
 
             if (networkprefab is null)
                 networkprefab = prefab.AddComponent<NetworkPrefab>();
-            else {
-                return false;
-            }
 
             entity = prefab.GetComponent<NetworkEntity>();
+
             if (entity is null)
                 entity = prefab.AddComponent<NetworkEntity>();
-            else {
-                return false;
-            }
-
-            return true;
         }
 
         private static ModHashRegistry GetHashOwner(int hash, ModHashRegistry owner) {
@@ -492,9 +481,7 @@ namespace SyncLib.Items {
             }
 
             if (workshopItem.PhysicalMaterial != WorkshopPhysicalMaterial.NoneOrCustom) {
-                string PhysicalMaterial = workshopItem.PhysicalMaterial.ToString().Replace('_', ' ');
-
-                PhysicalMaterial? physicalMaterial = FindScriptableObjectOfName<PhysicalMaterial>(PhysicalMaterial);
+                PhysicalMaterial? physicalMaterial = FindScriptableObjectOfName<PhysicalMaterial>(workshopItem.PhysicalMaterial.ToString());
 
                 if (physicalMaterial != null) {
                     PhysicalMaterialPart part = prefab.gameObject.AddComponent<PhysicalMaterialPart>();
@@ -528,7 +515,7 @@ namespace SyncLib.Items {
         }
 
         /// <summary>
-        /// Registers this prefab as an item in Alta's sytems for later use.
+        /// Registers this prefab as an NetworkPrefab in Alta's sytems for later use.
         /// <br></br>
         /// <br></br>
         /// <b>BEWARE!:</b> If the client has this mod, but the server doesn't, this function WILL return null, please take care of that accordingly.
@@ -580,13 +567,7 @@ namespace SyncLib.Items {
                 return null;
             }
 
-            bool success = prefab.AttachNetworkComponentsToBase(out NetworkPrefab networkprefab, out NetworkEntity entity);
-
-            if (!success) {
-                MessageError(mod, "Attempted to register a prefab that's already registered.", false);
-
-                return null;
-            }
+            prefab.AttachNetworkComponentsToBase(out NetworkPrefab networkprefab, out NetworkEntity entity);
 
             List<Component> allComps = new List<Component>();
 
