@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using Assembly = System.Reflection.Assembly;
 
-[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.2", "MrDuckTheFifth")]
+[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.3", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 
 namespace SyncLib {
@@ -110,10 +110,13 @@ namespace SyncLib {
 
                     Application.Quit();
                 }
+                else {
+                    NetworkPrefabRegistry.recievedSyncData = true;
 
-                NetworkPrefabRegistry.recievedSyncData = true;
+                    NetworkPrefabRegistry.jsonData = json;
 
-                NetworkPrefabRegistry.jsonData = json;
+                    PrefabManagerPatch.TryRegisterClient();
+                }
             }
         }
     }
@@ -121,24 +124,39 @@ namespace SyncLib {
     [HarmonyPatch(typeof(Socket), "CreateConnection", new Type[] { typeof(string), typeof(int) })]
     internal static class ISocketPatch {
         private static void Postfix(ref Connection __result) {
-            MelonLogger.Msg("Connection created to server, waiting for HashId json data...");
+            MelonLogger.Msg("Connection created to server, waiting for Json data...");
 
             __result.SetHandler(SyncLib.JsonSync, SyncLib.JsonSerialize);
         }
     }
 
     [HarmonyPatch(typeof(PrefabManager), "PrepareSpawnSetups")]
-    internal static class OrefabManagerPatch {
+    internal static class PrefabManagerPatch {
+        private static bool prefabsPrepped;
+
+        private static bool inProcess;
+
         private static bool called;
 
         private static void Postfix() {
-            if (called)
-                return;
-            
-            called = true;
+            prefabsPrepped = true;
 
-            if (!NetworkSceneManager.IsServer) {
-                NetworkPrefabRegistry.RegisterIntoGame();
+            TryRegisterClient();
+        }
+
+        internal static void TryRegisterClient() {
+            if (NetworkSceneManager.IsServer && !NetworkPrefabRegistry.recievedSyncData && NetworkPrefabRegistry.hasRegistered)
+                return;
+
+            if (!inProcess && prefabsPrepped) {
+                inProcess = true;
+
+                try {
+                    NetworkPrefabRegistry.RegisterIntoGame();
+                }
+                finally {
+                    inProcess = false;
+                }
             }
         }
     }
@@ -164,22 +182,38 @@ namespace SyncLib {
         }
 
         private static void OnApproved(Connection connection) {
-            MelonLogger.Msg("Player connection was approved, attempting to send HashId json data.");
+            MelonLogger.Msg("Player connection was approved, attempting to send Json data.");
 
-            bool result = connection.Send(null, SyncLib.JsonSync, SyncLib.JsonSerialize);
+            if (NetworkPrefabRegistry.hasRegistered && !string.IsNullOrWhiteSpace(NetworkPrefabRegistry.clientSerializableJsonData)) {
+                SendRegistry(connection);
 
-            if (!result) {
-                MelonLogger.Error("Failed to send json data to client.");
+                return;
             }
 
-            connection.Approved -= OnApproved;
+            Action sendIfReady = null;
+
+            sendIfReady = delegate {
+                NetworkPrefabRegistry.OnItemsFinishedRegistering -= sendIfReady;
+                SendRegistry(connection);
+            };
+
+            NetworkPrefabRegistry.OnItemsFinishedRegistering += sendIfReady;
+
+            if (NetworkPrefabRegistry.hasRegistered) {
+                sendIfReady();
+            }
+        }
+
+        private static void SendRegistry(Connection connection) {
+            if (!connection.Send(null, SyncLib.JsonSync, SyncLib.JsonSerialize)) {
+                MelonLogger.Error("Failed to send json data to client.");
+            }
         }
     }
 
-    // Unity is such a bastard
-    // Like why on earth does "GetComponentInParent" not work SPECIFICALLY ON UNINSTANTIATED PREFABS!?
+    // Why on earth does "GetComponentInParent" not work SPECIFICALLY ON UNINSTANTIATED PREFABS!?
 
-    // I spent FOUR HOURS trying to figure out why SOME components cannot have their fields set. Just to realize it's all because of Unity's stupid ass again.
+    // I spent FOUR HOURS trying to figure out why SOME components cannot have their fields set. Just to realize it's all because of Unity being weird.
     [HarmonyPatch(typeof(GetComponentInParentAttribute), nameof(GetComponentInParentAttribute.GetComponent))]
     public static class FixGetComponentInParentPrefabBugPatch {
         private static bool Prefix(Transform transform, Type type, ref Component __result) {

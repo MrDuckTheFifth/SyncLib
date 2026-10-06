@@ -4,6 +4,7 @@ using Alta.Inventory;
 using Alta.Loot;
 using Alta.Networking;
 using Alta.Utilities;
+using Harmony;
 using HarmonyLib;
 using MelonLoader;
 using Newtonsoft.Json;
@@ -12,8 +13,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.AI;
 using Item = Alta.Inventory.Item;
 using WorkshopItem = ATT_Workshop_Utilities.Item;
 using WorkshopLootCategory = Enums.LootCategory;
@@ -49,7 +52,7 @@ namespace SyncLib.Items {
     /// A class designed to assist in easily registering prefabs as NetworkPrefabs in Alta's systems for later use.
     /// </summary>
     public static class NetworkPrefabRegistry {
-        public static List<NetworkPrefab> RegisteredCustomPrefabs = new List<NetworkPrefab>();
+        public static Dictionary<int, NetworkPrefab> RegisteredCustomPrefabs = new Dictionary<int, NetworkPrefab>();
 
         public static Dictionary<Item, WorkshopItem> RegisteredCustomItems = new Dictionary<Item, WorkshopItem>();
 
@@ -127,14 +130,10 @@ namespace SyncLib.Items {
                 IAltaFolder SaveFolder = serverIdFolder.GetSubfolder("Save");
                 saveFilePath = Path.Combine(SaveFolder.Path, "modHashIds.json");
 
-                string path = null;
-
-                if (saveFilePath != null) {
-                    path = saveFilePath;
-                }
+                string path = saveFilePath;
 
                 if (string.IsNullOrWhiteSpace(path)) {
-                    MessageError(null, "Something went wrong while getting custom item data.");
+                    MessageError(SyncLib.instance, "Something went wrong while getting custom item data.");
 
                     return;
                 }
@@ -211,7 +210,35 @@ namespace SyncLib.Items {
 
             inRegistryProcess = false;
 
-            if (NetworkSceneManager.IsServer) {
+            if (!NetworkSceneManager.IsServer) {
+                Dictionary<string, string> modsToInstallOrUpdate = new Dictionary<string, string>();
+
+                foreach (ModHashRegistry mod in Registry.Mods) {
+                    foreach (int hash in mod.ItemHashes.Values) {
+                        // The server has this prefab registered, but the client does not.
+                        if (!RegisteredCustomPrefabs.ContainsKey(hash)) {
+                            modsToInstallOrUpdate.Add(mod.ModId, mod.LastKnownVersion);
+                        }
+                    }
+                }
+
+                if (modsToInstallOrUpdate.Count > 0) {
+                    StringBuilder sr = new StringBuilder();
+
+                    sr.AppendLine("You need to install/update these mods in order to join this server:\n");
+
+                    foreach (var mod in modsToInstallOrUpdate) {
+                        sr.AppendLine($"- {mod.Key} (VERSION: {mod.Value})");
+                    }
+
+                    string finalMessage = sr.ToString();
+
+                    MessageError(SyncLib.instance, finalMessage);
+
+                    return;
+                }
+            }
+            else {
                 string modPrefabFilePath = saveFilePath;
 
                 string json = JsonConvert.SerializeObject(Registry, Formatting.Indented);
@@ -561,6 +588,12 @@ namespace SyncLib.Items {
 
             CustomPrefabId = $"{CustomPrefabId} ({mod.Info.Name})";
 
+            // Server didn't respond saying they registered this item, so we skip.
+            // I thought I had implemented this?? Apparently not??
+            if(!NetworkSceneManager.IsServer && !Registry.Mods.Any(m => m.ItemHashes.Any(h => h.Key == CustomPrefabId))) {
+                return null;
+            }
+
             if (prefab is null) {
                 MessageError(mod, "Attempted to register a custom prefab that was null.");
 
@@ -634,7 +667,7 @@ namespace SyncLib.Items {
                 }
             }
 
-            if (!alreadyHadId) {
+            if (!alreadyHadId && NetworkSceneManager.IsServer) {
                 int nextAvaliable = GetNextAvailableHashId();
 
                 if (nextAvaliable <= 0) {
@@ -656,7 +689,7 @@ namespace SyncLib.Items {
             MethodInfo methodInfo = typeof(PrefabManager).GetMethod("AddToPrefabMap", BindingFlags.NonPublic | BindingFlags.Static);
             methodInfo.Invoke(null, new object[] { prefabArray });
 
-            RegisteredCustomPrefabs.Add(networkprefab);
+            RegisteredCustomPrefabs.Add((int)networkprefab.Hash, networkprefab);
 
             MelonLogger.Msg($"Successfully registered {prefab.name} as a NetworkPrefab with HashId of '{networkprefab.Hash}'!");
 
