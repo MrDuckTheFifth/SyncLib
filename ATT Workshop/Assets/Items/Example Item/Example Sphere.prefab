@@ -380,7 +380,9 @@ MonoBehaviour:
   isCumbersome: 0
   grabPointsScale: 1
   blockLevel: 1
-  jointType: 0
+  jointType: 2
+  interactionAllowance: 1
+  bypassMed1h: 1
 --- !u!114 &2907287637637443154
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -536,6 +536,8 @@ namespace SyncLib.Items {
                 .GetValue<Dictionary<uint, Item>>()
                 .Add(prefab.Hash, item);
 
+            Traverse.Create(item).Field("hash").SetValue((int)prefab.Hash);
+
             MelonLogger.Msg($"Successfully registered {prefab.name} as a custom item!");
 
             return item;
