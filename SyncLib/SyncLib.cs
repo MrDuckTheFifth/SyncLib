@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using Assembly = System.Reflection.Assembly;
 
-[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.3", "MrDuckTheFifth")]
+[assembly: MelonInfo(typeof(SyncLib.SyncLib), "SyncLib", "1.0.4", "MrDuckTheFifth")]
 [assembly: MelonGame("Alta", "A Township Tale")]
 
 namespace SyncLib {

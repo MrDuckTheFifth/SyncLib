@@ -185,6 +185,20 @@ namespace SyncLib.Items {
                 traverse.Field("blockLevel").SetValue((BlockLevel)pickup.blockLevel);
                 traverse.Field("jointType").SetValue((PickUpJointType)pickup.jointType);
                 traverse.Field("grabPointsScale").SetValue(pickup.grabPointsScale);
+                traverse.Field("bypassMed1h").SetValue(pickup.bypassMed1h);
+
+                // holy if-nesting
+                if(pickup.interactionAllowance != ATT_Workshop_Utilities.MultipleInteractionAllowance.None) {
+
+                    if(pickup.interactionAllowance == ATT_Workshop_Utilities.MultipleInteractionAllowance.Both) {
+                        traverse.Field("multipleAllowance").SetValue(
+                            MultipleInteractionAllowance.MultipleHandsPerPlayer |
+                            MultipleInteractionAllowance.MultiplePlayers);
+                    }
+                    else {
+                        traverse.Field("multipleAllowance").SetValue((MultipleInteractionAllowance)pickup.interactionAllowance);
+                    }
+                }
 
                 Transform transform = pickup.transform;
 
