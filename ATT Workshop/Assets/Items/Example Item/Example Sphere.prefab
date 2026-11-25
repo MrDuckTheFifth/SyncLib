@@ -580,7 +580,7 @@ MonoBehaviour:
   Linear: {x: 0, y: 0, z: 0}
   PoleForward: {x: 0, y: 0, z: 0}
   RefuseMultipleHands: 0
-  Offset: 0.1
+  Offset: 0.13
   IsDisabled: 0
   nonDockedRestriction: 0
   DockedRestriction: 0

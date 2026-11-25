@@ -1,5 +1,7 @@
 ﻿using Alta.Crafting;
+using Alta.Impact;
 using Alta.Networking;
+using Alta.Pages;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -11,23 +13,22 @@ using WorkshopChildEntity = ATT_Workshop_Utilities.ChildNetworkEntity;
 using WorkshopCraftingPart = ATT_Workshop_Utilities.CraftingPart;
 using WorkshopDurabilityModule = ATT_Workshop_Utilities.DurabilityModule;
 using WorkshopGrabPoint = ATT_Workshop_Utilities.GrabPoint;
+using WorkshopImpactor = ATT_Workshop_Utilities.Impactor;
+using WorkshopImpactorMap = ATT_Workshop_Utilities.ImpactorMap;
+using WorkshopImpactTool = ATT_Workshop_Utilities.ImpactTool;
 using WorkshopJointInsert = ATT_Workshop_Utilities.JointInsert;
 using WorkshopJointSlot = ATT_Workshop_Utilities.JointSlot;
 using WorkshopPickup = ATT_Workshop_Utilities.Pickup;
-using WorkshopImpactorMap = ATT_Workshop_Utilities.ImpactorMap;
-using WorkshopImpactor = ATT_Workshop_Utilities.Impactor;
-using WorkshopImpactTool = ATT_Workshop_Utilities.ImpactTool;
-using Alta.Impact;
 
 namespace SyncLib.Items {
     // WARNING: All code readability has gone out the window. Good luck.
     public static class WorkshopApplier {
-        public static void ApplyAll(NetworkEntity entity, NetworkPrefab networkprefab, ref List<Component> allComps) {
+        public static void ApplyAll(NetworkEntity entity, NetworkPrefab networkprefab, Alta.Inventory.Item? item, ref List<Component> allComps) {
             ApplyImpactors(entity, ref allComps);
             ApplyChildEntity(entity, ref allComps);
             ApplyCraftingPart(entity, ref allComps);
             ApplyJoints(entity, networkprefab, ref allComps);
-            ApplyPickup(entity, ref allComps);
+            ApplyPickup(entity, item, ref allComps);
             ApplyDurabilityModule(entity, ref allComps);
         }
 
@@ -169,13 +170,14 @@ namespace SyncLib.Items {
             }
         }
 
-        public static void ApplyPickup(NetworkEntity entity, ref List<Component> allComps) {
+        public static void ApplyPickup(NetworkEntity entity, Alta.Inventory.Item? item, ref List<Component> allComps) {
             WorkshopPickup[] pickups = entity.GetComponentsInChildren<WorkshopPickup>();
 
             foreach (WorkshopPickup pickup in pickups) {
                 GameObject originalObject = pickup.gameObject;
 
                 Pickup comp = originalObject.AddComponent<Pickup>();
+                comp.Item = item;
 
                 Traverse traverse = Traverse.Create(comp);
 
@@ -233,7 +235,11 @@ namespace SyncLib.Items {
                 traverse.Field("grabPoints").SetValue(grabPoints);
 
                 allComps.Add(comp);
+
+                return comp;
             }
+
+            return null;
         }
 
         public static void ApplyDurabilityModule(NetworkEntity entity, ref List<Component> allComps) {
